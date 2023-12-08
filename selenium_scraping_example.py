@@ -4,8 +4,11 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import Select
+import sys 
 import time
-import pandas as pd
+from openpyxl import Workbook
 
 #ruta del ejecutable de ChromeDriver
 driver_path = 'C:\\Users\\gisel\\Desktop\\chromedriver-win64\\chromedriver.exe'
@@ -18,12 +21,9 @@ options.add_argument('--start-maximized')
 #Iniciar el navegador
 options.binary_location = 'C:\\Users\\gisel\\Desktop\\chrome-win64\\chrome.exe'
 
+
 # Aquí se corrige la forma en que se pasan las opciones al WebDriver
 driver = webdriver.Chrome(options=options)
-
-# Leer datos desde el archivo Excel
-#excel_path = 'C:\\Users\\gisel\\Documents\\robot_pyhton\\CAPTURA MIERCOLES 06 DIC.xlsx'
-#df = pd.read_excel(excel_path)
 
 # Iniciar el navegador en una posición determinada
 try:
@@ -65,28 +65,28 @@ try:
     if simpatizante_radio_button:        
 
         # Seleccionar la opción para "medad"
-        medad_option = driver.find_element(By.CSS_SELECTOR, "input[name='medad']")
+        medad_option = driver.find_element(By.ID, 'xxmedad1')
         medad_option.click()
 
         # Ingresar información en los campos
         nombre_input = driver.find_element(By.ID, 'nombre')
-        nombre_input.send_keys('ANTONIO')
+        nombre_input.send_keys('MARIA')
         
         time.sleep(1)
         apellidop_input = driver.find_element(By.ID, 'paterno')
-        apellidop_input.send_keys('LOPEZ')
+        apellidop_input.send_keys('RAMIREZ')
 
         time.sleep(1)
         apellidom_input = driver.find_element(By.ID, 'materno')
-        apellidom_input.send_keys('REINA')
+        apellidom_input.send_keys('MADUENA')
 
         time.sleep(1)
         calle_input = driver.find_element(By.ID, 'calle')
-        calle_input.send_keys('AVENIDA VERDUGO')
+        calle_input.send_keys('SEPTIMA')
 
         time.sleep(1)
         ext_input = driver.find_element(By.ID, 'num_ext')
-        ext_input.send_keys('47')
+        ext_input.send_keys('S/N')
 
         time.sleep(1)
         municipio_dropdown = driver.find_element(By.ID, 'municipio')
@@ -94,15 +94,30 @@ try:
 
         time.sleep(1)
         colonia_input = driver.find_element(By.ID, 'colonia')
-        colonia_input.send_keys('CIUDAD COAHUILA')
+        colonia_input.send_keys('PARCELA DEL VALLE')
 
         time.sleep(1)
         seccion_dropdown = driver.find_element(By.ID, 'seccion')
-        seccion_dropdown.send_keys('644')
+        seccion_dropdown.send_keys('790909')
+
+        # Verificar si el valor ingresado está presente en el campo
+        try:
+            # Esperar hasta que el elemento con el valor ingresado aparezca (máximo 5 segundos)
+            WebDriverWait(driver, 2).until(
+                EC.text_to_be_present_in_element_value((By.ID, 'seccion'), '790909')
+            )
+
+        # Si encuentra el valor, seguir con el resto del código...
+        except TimeoutException:
+            # Si el valor no está presente, hacer clic en el botón "Volver"
+            volver_button = WebDriverWait(driver, 2).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@onclick, 'window.location=\"./simpatiza.php\"')]"))
+            )
+            volver_button.click()
 
         time.sleep(1)
         tel_input = driver.find_element(By.ID, 'tel')
-        tel_input.send_keys('6861993643')
+        tel_input.send_keys('6862319764')
         
         # Hacer clic en cualquier parte de la página
         driver.find_element('id','info').click()
@@ -112,6 +127,17 @@ try:
             EC.element_to_be_clickable((By.ID, 'submitokm'))
         )
         enviar_guardar_button.click()
+
+        # Esperar a que el mensaje de error aparezca (max 5 segundos)
+        error_message = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'ERROR:')]"))
+        )
+
+        # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+        volver_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+        )
+        volver_button.click()
 
         #Seleccionar por direccion
         por_dir = WebDriverWait(driver, 10).until(
@@ -138,33 +164,35 @@ try:
         )
         cerrar_button.click()
 
-
     else:
-        # Ingresar información si no es simpatizante
-        driver.find_element('input[name="calle"]').send_keys('NombreCalle')
-        driver.find_element('input[name="num_ext"]').send_keys('NumeroExterior')
-        driver.find_element('input[name="municipio"]').send_keys('Mexicali')
-        driver.find_element('input[name="colonia"]').send_keys('NombreColonia')
-        driver.find_element('input[name="seccion"]').send_keys('Seccion')
+       #Seleccionar por direccion
+        por_dir = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, 'apd'))
+        )
+        por_dir.click()
 
-        # Hacer clic en cualquier parte de la página (puedes cambiar el selector según tu necesidad)
-        driver.find_element('body').click()
+        # Cambiar a la nueva ventana o pestaña
+        driver.switch_to.window(driver.window_handles[-1])
 
-        # Seleccionar botones adicionales
-        driver.find_element('input[name="button"][id="submitokm"]').click()
-        driver.find_element('input[name="buton"][id="apd"]').click()
+        # Esperar 5 segundos después de abrir la nueva página
+        time.sleep(5)
 
-        # Abrir nueva pestaña
-        driver.execute_script("window.open('https://2024.sirena.mx/upcoor.php', '_blank')")
+        # Hacer clic en el botón "Actualizar coordenadas"
+        actualizar_coordenadas_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, 'actualizar'))
+        )
+        actualizar_coordenadas_button.click()
 
-        # Esperar 3 segundos
-        time.sleep(3)
+        # Esperar a que el botón "Cerrar" sea clickeable
+        time.sleep(2)
+        cerrar_button = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btns.btns-gris[onclick='window.close();']"))
+        )
+        cerrar_button.click()
 
-        # Actualizar y cerrar la nueva pestaña
-        driver.switch_to.window(driver.window_handles[1])
-        driver.find_element('input[name="button"][id="actualizar"]').click()
-        time.sleep(1)
-        driver.find_element('input[name="button"][id="window.close()"]').click()
+# No se encontró el mensaje de error, continuar con el resto del código
+except TimeoutException:
+    pass
 
 finally:
     time.sleep(50)
