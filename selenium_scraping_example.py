@@ -210,5 +210,5 @@ except TimeoutException:
     pass
 
 finally:
-    time.sleep(50)
+    time.sleep(10)
     driver.quit()
