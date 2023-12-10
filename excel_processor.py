@@ -1,15 +1,18 @@
-# excel_processor.py
-
 import pandas as pd
-import json
+import csv
+
 
 class ExcelProcessor:
-    def __init__(self, file_path, district, secciones_json_path):
+    def __init__(self, file_path, district, secciones_csv_path):
         self.file_path = file_path
         self.district = district
-        with open(secciones_json_path, 'r') as file:
-            self.secciones_distritos = json.load(file)
+        self.secciones_df = self.load_secciones_df(secciones_csv_path)
         self.df = None
+
+    def load_secciones_df(self, secciones_csv_path):
+        # Leer el archivo CSV de secciones
+        secciones_df = pd.read_csv(secciones_csv_path)
+        return secciones_df
 
     def load_excel(self):
         try:
@@ -24,8 +27,10 @@ class ExcelProcessor:
             return False, f"Ha ocurrido un error al cargar el archivo: {e}"
 
     def validate_columns(self):
-        required_columns = ['Nombre', 'Paterno', 'Materno', 'Telefono', 'Calle', 'Num', 'Colonia', 'CP', 'CVE_ELEC', 'Municipio', 'Seccion']
-        missing_columns = [col for col in required_columns if col not in self.df.columns]
+        required_columns = ['Nombre', 'Paterno', 'Materno', 'Telefono',
+                            'Calle', 'Num', 'Colonia', 'CP', 'CVE_ELEC', 'Municipio', 'Seccion']
+        missing_columns = [
+            col for col in required_columns if col not in self.df.columns]
         if missing_columns:
             return False, f"Faltan las siguientes columnas: {', '.join(missing_columns)}"
         return True, "Todas las columnas requeridas están presentes."
@@ -57,4 +62,7 @@ class ExcelProcessor:
         return True
 
     def is_section_valid(self, section):
-        return self.secciones_distritos.get(str(section)) == self.district
+        section = int(section)  # Convertir la sección a entero
+        valid_sections = self.secciones_df[self.secciones_df['DIST_FED']
+                                           == self.district]['SECCION'].tolist()
+        return section in valid_sections
