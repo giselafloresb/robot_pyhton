@@ -1,76 +1,57 @@
-# Librerías
+# web_form_filler.py
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.support.ui import Select
-import sys
 import time
-from openpyxl import load_workbook
+import pandas as pd
 
-# ruta del ejecutable de ChromeDriver
-driver_path = 'env\chromedriver\chromedriver.exe'
 
-# Ruta del archivo Excel
-excel_path = 'CAPTURA VIERNES 08 DIC.xlsx'
+def init_webdriver(chrome_driver_path, chrome_binary_path):
+    driver_path = chrome_driver_path
+    options = webdriver.ChromeOptions()
+    options.add_argument('--start-maximized')
+    options.binary_location = chrome_binary_path
+    driver = webdriver.Chrome(options=options)
+    return driver
 
-# Opciones del navegación
-options = webdriver.ChromeOptions()
-options.add_argument('--start-maximized')
 
-# Iniciar el navegador
-options.binary_location = 'env\chrome\chrome.exe'
-driver = webdriver.Chrome(options=options)
-
-# Iniciar el navegador en una posición determinada
-try:
-    # Ingresar a la página
+def login(driver, username, password):
     driver.get('https://info.sirena.mx/index.php')
 
-    # Esperar hasta que el elemento sea clickeable
-    username = WebDriverWait(driver, 10).until(
+    # Esperar hasta que el elemento sea clickeable y realizar la acción de login
+    username_input = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='login']"))
     )
-    username.send_keys('bezaadttvy')
+    username_input.send_keys(username)
 
-    password = driver.find_element(By.CSS_SELECTOR, "input[name='password']")
-    password.send_keys('MQ8kpmbrgj')
+    password_input = driver.find_element(
+        By.CSS_SELECTOR, "input[name='password']")
+    password_input.send_keys(password)
 
-    driver.find_element('id', 'go').click()
+    driver.find_element(By.ID, 'go').click()
 
-    # Seleccionar botones
+    # Esperar a que el botón de promovidos sea clickeable y hacer clic
     promovidos_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.XPATH, "//button[contains(@onclick, 'window.location=\"./simpatiza.php\"')]"))
     )
     promovidos_button.click()
 
+    # Esperar a que el botón de registrar en línea sea clickeable y hacer clic
     registrar_en_linea_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (By.CSS_SELECTOR, "button.btns.btns-ok span.ii i.fas.fa-link"))
     )
     registrar_en_linea_button.click()
 
-    workbook = load_workbook(excel_path)
-    sheet = workbook.active
 
-    # Obtener datos del Excel
-    nombre = sheet['A2'].value
-    apellidop = sheet['B2'].value
-    apellidom = sheet['C2'].value
-    # cve_ife = sheet[].value
-    calle = sheet['D2'].value
-    ext = sheet['E2'].value
-    municipio = sheet['F2'].value
-    colonia = sheet['G2'].value
-    seccion = sheet['H2'].value
-    telefono = sheet['I2'].value
-
+def fill_web_form(driver, record):
     # Cambiar a la nueva ventana o pestaña (si es necesario)
     driver.switch_to.window(driver.window_handles[-1])
-    if telefono != "":
+
+    if not pd.isna(record['Telefono']):
         # Esperar hasta que el radio button sea clickeable
         simpatizante_radio_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.ID, 'xxsimpatizante1'))
@@ -100,6 +81,11 @@ try:
         # Seleccionar la opción para "medad"
         medad_option = driver.find_element(By.ID, 'xxmedad1')
         medad_option.click()
+
+        # Si encuentra el valor, seguir con el resto del código...
+        tel_input = driver.find_element(By.ID, 'tel')
+        tel_input.send_keys(record['Telefono'])
+
     else:
        # Esperar hasta que el radio button sea clickeable
         simpatizante_radio_button = WebDriverWait(driver, 10).until(
@@ -107,37 +93,47 @@ try:
         )
         simpatizante_radio_button.click()
 
-    # Ingresar información en los campos
-    nombre_input = driver.find_element(By.ID, 'nombre')
-    nombre_input.send_keys(nombre)
-
-    time.sleep(1)
-    apellidop_input = driver.find_element(By.ID, 'paterno')
-    apellidop_input.send_keys(apellidop)
-
-    time.sleep(1)
-    apellidom_input = driver.find_element(By.ID, 'materno')
-    apellidom_input.send_keys(apellidom)
-
     time.sleep(1)
     calle_input = driver.find_element(By.ID, 'calle')
-    calle_input.send_keys(calle)
+    calle_input.send_keys(record['Calle'])
 
     time.sleep(1)
     ext_input = driver.find_element(By.ID, 'num_ext')
-    ext_input.send_keys(ext)
+    ext_input.send_keys(record['Num'])
 
     time.sleep(1)
     municipio_dropdown = driver.find_element(By.ID, 'municipio')
-    municipio_dropdown.send_keys(municipio)
+    municipio_dropdown.send_keys(record['Municipio'])
 
     time.sleep(1)
     colonia_input = driver.find_element(By.ID, 'colonia')
-    colonia_input.send_keys(colonia)
+    colonia_input.send_keys(record['Colonia'])
+
+    if not pd.isna(record['CP']) and not pd.isna(record['Telefono']):
+        time.sleep(1)
+        ext_input = driver.find_element(By.ID, 'cp')
+        ext_input.send_keys(record['CP'])
 
     time.sleep(1)
     seccion_dropdown = driver.find_element(By.ID, 'seccion')
-    seccion_dropdown.send_keys(seccion)
+    seccion_dropdown.send_keys(record['Seccion'])
+
+    # Ingresar información en los campos
+    nombre_input = driver.find_element(By.ID, 'nombre')
+    nombre_input.send_keys(record['Nombre'])
+
+    time.sleep(1)
+    apellidop_input = driver.find_element(By.ID, 'paterno')
+    apellidop_input.send_keys(record['Paterno'])
+
+    time.sleep(1)
+    apellidom_input = driver.find_element(By.ID, 'materno')
+    apellidom_input.send_keys(record['Materno'])
+
+    if not pd.isna(record['CVE_ELEC']):
+        time.sleep(1)
+        apellidom_input = driver.find_element(By.ID, 'cve_ife')
+        apellidom_input.send_keys(record['CVE_ELEC'])
 
     # Verificar si el valor ingresado está presente en el campo
     # try:
@@ -145,10 +141,6 @@ try:
     #     WebDriverWait(driver, 2).until(
     #         EC.text_to_be_present_in_element((By.XPATH, '//*[@id="seccion"]'), seccion)
     #     )
-
-    # Si encuentra el valor, seguir con el resto del código...
-    tel_input = driver.find_element(By.ID, 'tel')
-    tel_input.send_keys(telefono)
 
     # Hacer clic en cualquier parte de la página
     driver.find_element('id', 'info').click()
@@ -198,17 +190,38 @@ try:
         )
         cerrar_button.click()
 
-    # except TimeoutException:
-    #     # Si el valor no está presente, hacer clic en el botón "Volver"
-    #     volver_button = WebDriverWait(driver, 2).until(
-    #         EC.element_to_be_clickable((By.XPATH, '//*[@id="msgs"]/p[2]/button'))
-    #     )
-    #     volver_button.click()
 
-# No se encontró el mensaje de error, continuar con el resto del código
-except TimeoutException:
-    pass
+def automate_web_form(user, password, records, chrome_driver_path, chrome_binary_path):
+    driver = init_webdriver(chrome_driver_path, chrome_binary_path)
 
-finally:
-    time.sleep(50)
-    driver.quit()
+    try:
+        login(driver, user, password)
+
+        for record in records:
+            fill_web_form(driver, record)
+            # Agregar un tiempo de espera entre envíos si es necesario
+            time.sleep(1)
+
+    except TimeoutException as e:
+        print(f"Se produjo un error con el mensaje: {e}")
+    finally:
+        driver.quit()
+
+# Función principal que se llamará desde la UI
+
+
+def main(usuario, contrasena, records, chrome_driver_path, chrome_binary_path):
+    automate_web_form(usuario, contrasena, records,
+                      chrome_driver_path, chrome_binary_path)
+
+
+# Si vas a probar el script de forma independiente puedes usar esta parte,
+# de lo contrario, estos datos vendrán de la UI
+if __name__ == "__main__":
+    usuario = 'tu_usuario'
+    contrasena = 'tu_contraseña'
+    # Esta lista debe contener diccionarios con los datos de cada registro válido
+    records = [...]
+    chrome_driver_path = 'env/chromedriver/chromedriver.exe'
+    chrome_binary_path = 'env/chrome/chrome.exe'
+    main(usuario, contrasena, records, chrome_driver_path, chrome_binary_path)
