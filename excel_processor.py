@@ -1,5 +1,4 @@
 import pandas as pd
-import csv
 
 
 class ExcelProcessor:
@@ -17,11 +16,6 @@ class ExcelProcessor:
     def load_excel(self):
         try:
             self.df = pd.read_excel(self.file_path)
-            # Llenar 'Paterno' o 'Materno' con 'X' si están vacíos
-            self.df['Paterno'] = self.df['Paterno'].fillna('X')
-            self.df['Materno'] = self.df['Materno'].fillna('X')
-            # Agregar la columna 'Error'
-            self.df['Error'] = ""
             return True, "Archivo cargado correctamente."
         except Exception as e:
             return False, f"Ha ocurrido un error al cargar el archivo: {e}"
@@ -36,33 +30,57 @@ class ExcelProcessor:
         return True, "Todas las columnas requeridas están presentes."
 
     def validate_records(self):
-        self.df['Valid'] = self.df.apply(self.validate_record, axis=1)
-        invalid_records = self.df[~self.df['Valid']]
-        # Actualizar la columna 'Error' con los mensajes de error
-        self.df['Error'] = invalid_records['Error'].values
-        return invalid_records
+        self.df['Error'], self.df['Paterno'], self.df['Materno'] = zip(
+            *self.df.apply(self.validate_record, axis=1))
+        # Contar los registros inválidos como aquellos que tienen un mensaje de error no vacío
+        count_invalid_records = self.df['Error'].apply(lambda x: x != "").sum()
+        return count_invalid_records
 
     def validate_record(self, record):
-        # Verificar que el Nombre no esté vacío y que al menos uno de Paterno o Materno esté presente
+        errors = []
+
         if pd.isnull(record['Nombre']):
-            record['Error'] = "El campo 'Nombre' no puede estar vacío."
-            return False
-        # Verificar que CP sea vacío o tenga 5 dígitos
-        if not pd.isnull(record['CP']) and len(str(record['CP'])) != 5:
-            record['Error'] = "El campo 'CP' debe estar vacío o contener 5 dígitos exactos."
-            return False
-        # Verificar que el Teléfono sea vacío o tenga 10 dígitos
-        if not pd.isnull(record['Telefono']) and len(str(record['Telefono'])) != 10:
-            record['Error'] = "El campo 'Telefono' debe estar vacío o contener 10 dígitos exactos."
-            return False
-        # Verificar que la Sección pertenezca al Distrito definido
+            errors.append("El campo 'Nombre' no puede estar vacío.")
+
+        # Convertir y validar 'Telefono' si no está vacío
+        if not pd.isnull(record['Telefono']):
+            telefono_str = str(int(record['Telefono'])) if isinstance(
+                record['Telefono'], float) else str(record['Telefono'])
+            if len(telefono_str) != 10:
+                errors.append(
+                    "El campo 'Telefono' debe contener 10 dígitos exactos.")
+
+        # Convertir y validar 'CP' si no está vacío
+        if not pd.isnull(record['CP']):
+            cp_str = str(int(record['CP'])) if isinstance(
+                record['CP'], float) else str(record['CP'])
+            if len(cp_str) != 5:
+                errors.append("El campo 'CP' debe contener 5 dígitos exactos.")
+
+        # Validación de apellidos
+        paterno = record['Paterno'] if pd.notnull(record['Paterno']) else ""
+        materno = record['Materno'] if pd.notnull(record['Materno']) else ""
+        if not paterno and not materno:
+            errors.append(
+                "Al menos uno de los campos 'Paterno' o 'Materno' debe estar presente.")
+        else:
+            if not paterno:
+                paterno = 'X'
+            if not materno:
+                materno = 'X'
+
         if not self.is_section_valid(record['Seccion']):
-            record['Error'] = "La Sección no pertenece al Distrito seleccionado."
-            return False
-        return True
+            errors.append("La Sección no pertenece al Distrito seleccionado.")
+
+        error_message = " | ".join(errors)
+        return error_message, paterno, materno
 
     def is_section_valid(self, section):
-        section = int(section)  # Convertir la sección a entero
-        valid_sections = self.secciones_df[self.secciones_df['DIST_FED']
-                                           == self.district]['SECCION'].tolist()
-        return section in valid_sections
+        try:
+            section_int = int(section)
+            district_int = int(self.district)
+            valid_sections = self.secciones_df[self.secciones_df['DIST_FED']
+                                               == district_int]['SECCION'].tolist()
+            return section_int in valid_sections
+        except ValueError:
+            return False

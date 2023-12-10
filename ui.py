@@ -78,6 +78,15 @@ class MainWindow:
         self.progress.grid(row=6, column=0, padx=10, pady=5,
                            sticky="ew", columnspan=2)
 
+        self.result_label = ttk.Label(master, text="", background='white')
+        self.result_label.grid(row=7, column=0, padx=10,
+                               pady=5, sticky="ew", columnspan=2)
+
+        self.download_button = ttk.Button(
+            master, text="Descargar Registros Inválidos", state='disabled', command=self.download_invalid_records)
+        self.download_button.grid(
+            row=8, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+
         master.grid_columnconfigure(0, weight=1)
         master.grid_columnconfigure(1, weight=3)
 
@@ -104,7 +113,6 @@ class MainWindow:
             self.progress.start(10)
             threading.Thread(target=self.load_excel, args=(
                 file_path,), daemon=True).start()
-            # Mostrar el botón de descarga después de cargar el archivo
             self.show_download_button()
 
     def show_download_button(self):
@@ -132,22 +140,54 @@ class MainWindow:
             messagebox.showerror("Error en el archivo", message)
             return
 
-        invalid_records = self.excel_processor.validate_records()
-        if not invalid_records.empty:
-            # Agregar la columna 'Error' al DataFrame original con los mensajes de error
-            self.excel_processor.df['Error'] = invalid_records['Error'].values
-            # Guardar el DataFrame con la columna de errores en un nuevo archivo Excel
-            error_file_path = "registros_con_errores.xlsx"
-            self.excel_processor.df.to_excel(error_file_path, index=False)
-            # Crear un mensaje con la liga de descarga
-            message_with_link = f"Se han encontrado registros con errores. Puede descargar el archivo con los registros y mensajes de error en [este enlace]({
-                error_file_path})."
-            messagebox.showinfo("Validación", message_with_link, icon='info')
-            # Mostrar el botón de descarga después de la ventana de alerta
-            self.show_download_button()
+        count_invalid_records = self.excel_processor.validate_records()
+        total_invalid = count_invalid_records
+        total_valid = len(self.excel_processor.df) - total_invalid
+
+        # Actualizar la etiqueta de resultados con la cantidad de registros válidos e inválidos
+        if total_invalid > 0:
+            self.result_label.config(text=f"Registros válidos: {
+                                     total_valid}\nRegistros inválidos: {total_invalid}")
+            self.download_button.config(state='normal')
         else:
-            messagebox.showinfo(
-                "Validación", "Todos los registros son válidos.")
+            self.result_label.config(
+                text=f"Todos los registros son válidos. Total registros: {total_valid}")
+            self.download_button.config(state='disabled')
+
+    def download_invalid_records(self):
+        # Pedir al usuario que elija dónde guardar el archivo de registros eliminados
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            title="Guardar registros eliminados como"
+        )
+        if filepath:
+            # Guardar los registros eliminados en la ubicación seleccionada
+            try:
+                self.excel_processor.removed_records.to_excel(
+                    filepath, index=False)
+                messagebox.showinfo(
+                    "Guardar archivo", f"Registros eliminados guardados exitosamente en {filepath}")
+            except Exception as e:
+                messagebox.showerror(
+                    "Error", f"Ocurrió un error al guardar el archivo: {e}")
+
+    def download_corrected_records(self):
+        # Pedir al usuario que elija dónde guardar el archivo de registros corregidos
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            title="Guardar registros corregidos como"
+        )
+        if filepath:
+            # Guardar los registros corregidos en la ubicación seleccionada
+            try:
+                self.excel_processor.df.to_excel(filepath, index=False)
+                messagebox.showinfo(
+                    "Guardar archivo", f"Registros corregidos guardados exitosamente en {filepath}")
+            except Exception as e:
+                messagebox.showerror(
+                    "Error", f"Ocurrió un error al guardar el archivo: {e}")
 
 
 if __name__ == "__main__":

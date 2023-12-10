@@ -14,7 +14,7 @@ from openpyxl import load_workbook
 driver_path = 'env\chromedriver\chromedriver.exe'
 
 # Ruta del archivo Excel
-excel_path = 'C:\\Users\\gisel\\Documents\\robot_pyhton\\CAPTURA VIERNES 08 DIC.xlsx'
+excel_path = 'CAPTURA VIERNES 08 DIC.xlsx'
 
 # Opciones del navegación
 options = webdriver.ChromeOptions()
