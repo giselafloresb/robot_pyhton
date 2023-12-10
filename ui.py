@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from excel_processor import ExcelProcessor
+from web_form_filler import main
 import threading
 
 
@@ -86,6 +87,11 @@ class MainWindow:
             master, text="Descargar Registros Inválidos", state='disabled', command=self.download_invalid_records)
         self.download_button.grid(
             row=8, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+
+        self.automation_button = ttk.Button(
+            master, text="Iniciar Automatización", command=self.start_automation)
+        self.automation_button.grid(
+            row=9, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
 
         master.grid_columnconfigure(0, weight=1)
         master.grid_columnconfigure(1, weight=3)
@@ -188,6 +194,32 @@ class MainWindow:
             except Exception as e:
                 messagebox.showerror(
                     "Error", f"Ocurrió un error al guardar el archivo: {e}")
+
+    def start_automation(self):
+        usuario = self.entry_user.get()
+        contrasena = self.entry_password.get()
+        # Debes implementar esta función para obtener los registros válidos
+        records = self.get_valid_records()
+
+        # Asegúrate de especificar las rutas correctas para tu chromedriver y chrome.exe
+        chrome_driver_path = 'env/chromedriver/chromedriver.exe'
+        chrome_binary_path = 'env/chrome/chrome.exe'
+
+        # Inicia la automatización pasando los datos necesarios
+        main(usuario, contrasena, records,
+             chrome_driver_path, chrome_binary_path)
+
+    def get_valid_records(self):
+        # Asegúrate de que el DataFrame esté cargado
+        if self.excel_processor.df is not None:
+            # Filtra los registros sin errores
+            valid_records_df = self.excel_processor.df[self.excel_processor.df['Error'] == ""]
+
+            # Convierte el DataFrame de registros válidos a una lista de diccionarios
+            valid_records = valid_records_df.to_dict('records')
+            return valid_records
+        else:
+            return []
 
 
 if __name__ == "__main__":

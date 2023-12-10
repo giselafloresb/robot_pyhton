@@ -53,102 +53,125 @@ try:
     )
     registrar_en_linea_button.click()
 
+    workbook = load_workbook(excel_path)
+    sheet = workbook.active
+
+    # Obtener datos del Excel
+    nombre = sheet['A2'].value
+    apellidop = sheet['B2'].value
+    apellidom = sheet['C2'].value
+    # cve_ife = sheet[].value
+    calle = sheet['D2'].value
+    ext = sheet['E2'].value
+    municipio = sheet['F2'].value
+    colonia = sheet['G2'].value
+    seccion = sheet['H2'].value
+    telefono = sheet['I2'].value
+
     # Cambiar a la nueva ventana o pestaña (si es necesario)
     driver.switch_to.window(driver.window_handles[-1])
+    if telefono != "":
+        # Esperar hasta que el radio button sea clickeable
+        simpatizante_radio_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, 'xxsimpatizante1'))
+        )
+        simpatizante_radio_button.click()
 
-    # Esperar hasta que el radio button sea clickeable
-    simpatizante_radio_button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.ID, 'xxsimpatizante1'))
-    )
-    simpatizante_radio_button.click()
+        p_comite_radio_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, 'xxc_defensa2'))
+        )
+        p_comite_radio_button.click()
 
-    # Verificar si es simpatizante
-    if simpatizante_radio_button:
+        p_def_voto_radio_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, 'xxdv_representante2'))
+        )
+        p_def_voto_radio_button.click()
 
-        workbook = load_workbook(excel_path)
-        sheet = workbook.active
+        invit_person_radio_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, 'xxinvitando1'))
+        )
+        invit_person_radio_button.click()
 
-        # Obtener datos del Excel
-        nombre = sheet['A2'].value
-        apellidop = sheet['B2'].value
-        apellidom = sheet['C2'].value
-        # cve_ife = sheet[].value
-        calle = sheet['D2'].value
-        ext = sheet['E2'].value
-        municipio = sheet['F2'].value
-        colonia = sheet['G2'].value
-        seccion = sheet['H2'].value
-        telefono = sheet['I2'].value
+        num_invit_person_radio_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, 'xxqpersonas_4t4'))
+        )
+        num_invit_person_radio_button.click()
 
         # Seleccionar la opción para "medad"
         medad_option = driver.find_element(By.ID, 'xxmedad1')
         medad_option.click()
-
-        # Ingresar información en los campos
-        nombre_input = driver.find_element(By.ID, 'nombre')
-        nombre_input.send_keys(nombre)
-
-        time.sleep(1)
-        apellidop_input = driver.find_element(By.ID, 'paterno')
-        apellidop_input.send_keys(apellidop)
-
-        time.sleep(1)
-        apellidom_input = driver.find_element(By.ID, 'materno')
-        apellidom_input.send_keys(apellidom)
-
-        time.sleep(1)
-        calle_input = driver.find_element(By.ID, 'calle')
-        calle_input.send_keys(calle)
-
-        time.sleep(1)
-        ext_input = driver.find_element(By.ID, 'num_ext')
-        ext_input.send_keys(ext)
-
-        time.sleep(1)
-        municipio_dropdown = driver.find_element(By.ID, 'municipio')
-        municipio_dropdown.send_keys(municipio)
-
-        time.sleep(1)
-        colonia_input = driver.find_element(By.ID, 'colonia')
-        colonia_input.send_keys(colonia)
-
-        time.sleep(1)
-        seccion_dropdown = driver.find_element(By.ID, 'seccion')
-        seccion_dropdown.send_keys(seccion)
-
-        # Verificar si el valor ingresado está presente en el campo
-        # try:
-        #     # Esperar hasta que el elemento con el valor ingresado aparezca
-        #     WebDriverWait(driver, 2).until(
-        #         EC.text_to_be_present_in_element((By.XPATH, '//*[@id="seccion"]'), seccion)
-        #     )
-
-        # Si encuentra el valor, seguir con el resto del código...
-        tel_input = driver.find_element(By.ID, 'tel')
-        tel_input.send_keys(telefono)
-
-        # Hacer clic en cualquier parte de la página
-        driver.find_element('id', 'info').click()
-
-        # Hacer clic en el botón "Enviar/Guardar"
-        enviar_guardar_button = WebDriverWait(driver, 100).until(
-            EC.element_to_be_clickable((By.ID, 'submitokm'))
+    else:
+       # Esperar hasta que el radio button sea clickeable
+        simpatizante_radio_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, 'xxsimpatizante2'))
         )
-        enviar_guardar_button.click()
+        simpatizante_radio_button.click()
 
-        # Esperar a que el mensaje de error aparezca (max 5 segundos)
-        error_message = WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located(
-                (By.XPATH, "//span[contains(text(),'ERROR:')]"))
-        )
+    # Ingresar información en los campos
+    nombre_input = driver.find_element(By.ID, 'nombre')
+    nombre_input.send_keys(nombre)
 
+    time.sleep(1)
+    apellidop_input = driver.find_element(By.ID, 'paterno')
+    apellidop_input.send_keys(apellidop)
+
+    time.sleep(1)
+    apellidom_input = driver.find_element(By.ID, 'materno')
+    apellidom_input.send_keys(apellidom)
+
+    time.sleep(1)
+    calle_input = driver.find_element(By.ID, 'calle')
+    calle_input.send_keys(calle)
+
+    time.sleep(1)
+    ext_input = driver.find_element(By.ID, 'num_ext')
+    ext_input.send_keys(ext)
+
+    time.sleep(1)
+    municipio_dropdown = driver.find_element(By.ID, 'municipio')
+    municipio_dropdown.send_keys(municipio)
+
+    time.sleep(1)
+    colonia_input = driver.find_element(By.ID, 'colonia')
+    colonia_input.send_keys(colonia)
+
+    time.sleep(1)
+    seccion_dropdown = driver.find_element(By.ID, 'seccion')
+    seccion_dropdown.send_keys(seccion)
+
+    # Verificar si el valor ingresado está presente en el campo
+    # try:
+    #     # Esperar hasta que el elemento con el valor ingresado aparezca
+    #     WebDriverWait(driver, 2).until(
+    #         EC.text_to_be_present_in_element((By.XPATH, '//*[@id="seccion"]'), seccion)
+    #     )
+
+    # Si encuentra el valor, seguir con el resto del código...
+    tel_input = driver.find_element(By.ID, 'tel')
+    tel_input.send_keys(telefono)
+
+    # Hacer clic en cualquier parte de la página
+    driver.find_element('id', 'info').click()
+
+    # Hacer clic en el botón "Enviar/Guardar"
+    enviar_guardar_button = WebDriverWait(driver, 100).until(
+        EC.element_to_be_clickable((By.ID, 'submitokm'))
+    )
+    enviar_guardar_button.click()
+
+    # Esperar a que el mensaje de error aparezca (max 5 segundos)
+    error_message = WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//span[contains(text(),'ERROR:')]"))
+    )
+    if error_message:
         # Si el mensaje de error está presente, hacer clic en el botón "Volver"
         volver_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
         )
         volver_button.click()
-
+    else:
         # Seleccionar por direccion
         por_dir = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.ID, 'apd'))
@@ -175,12 +198,12 @@ try:
         )
         cerrar_button.click()
 
-        # except TimeoutException:
-        #     # Si el valor no está presente, hacer clic en el botón "Volver"
-        #     volver_button = WebDriverWait(driver, 2).until(
-        #         EC.element_to_be_clickable((By.XPATH, '//*[@id="msgs"]/p[2]/button'))
-        #     )
-        #     volver_button.click()
+    # except TimeoutException:
+    #     # Si el valor no está presente, hacer clic en el botón "Volver"
+    #     volver_button = WebDriverWait(driver, 2).until(
+    #         EC.element_to_be_clickable((By.XPATH, '//*[@id="msgs"]/p[2]/button'))
+    #     )
+    #     volver_button.click()
 
 # No se encontró el mensaje de error, continuar con el resto del código
 except TimeoutException:
