@@ -48,6 +48,7 @@ def login(driver, username, password):
 
 
 def fill_web_form(driver, record):
+
     # Cambiar a la nueva ventana o pestaña (si es necesario)
     driver.switch_to.window(driver.window_handles[-1])
 
@@ -81,6 +82,23 @@ def fill_web_form(driver, record):
         # Seleccionar la opción para "medad"
         medad_option = driver.find_element(By.ID, 'xxmedad1')
         medad_option.click()
+
+        # Ingresar información en los campos
+        nombre_input = driver.find_element(By.ID, 'nombre')
+        nombre_input.send_keys(record['Nombre'])
+
+        time.sleep(1)
+        apellidop_input = driver.find_element(By.ID, 'paterno')
+        apellidop_input.send_keys(record['Paterno'])
+
+        time.sleep(1)
+        apellidom_input = driver.find_element(By.ID, 'materno')
+        apellidom_input.send_keys(record['Materno'])
+
+        if not pd.isna(record['CVE_ELEC']):
+            time.sleep(1)
+            apellidom_input = driver.find_element(By.ID, 'cve_ife')
+            apellidom_input.send_keys(record['CVE_ELEC'])
 
         # Si encuentra el valor, seguir con el resto del código...
         tel_input = driver.find_element(By.ID, 'tel')
@@ -118,23 +136,6 @@ def fill_web_form(driver, record):
     seccion_dropdown = driver.find_element(By.ID, 'seccion')
     seccion_dropdown.send_keys(record['Seccion'])
 
-    # Ingresar información en los campos
-    nombre_input = driver.find_element(By.ID, 'nombre')
-    nombre_input.send_keys(record['Nombre'])
-
-    time.sleep(1)
-    apellidop_input = driver.find_element(By.ID, 'paterno')
-    apellidop_input.send_keys(record['Paterno'])
-
-    time.sleep(1)
-    apellidom_input = driver.find_element(By.ID, 'materno')
-    apellidom_input.send_keys(record['Materno'])
-
-    if not pd.isna(record['CVE_ELEC']):
-        time.sleep(1)
-        apellidom_input = driver.find_element(By.ID, 'cve_ife')
-        apellidom_input.send_keys(record['CVE_ELEC'])
-
     # Verificar si el valor ingresado está presente en el campo
     # try:
     #     # Esperar hasta que el elemento con el valor ingresado aparezca
@@ -150,20 +151,38 @@ def fill_web_form(driver, record):
         EC.element_to_be_clickable((By.ID, 'submitokm'))
     )
     enviar_guardar_button.click()
+    hay_error = False
+    if not pd.isna(record['Telefono']):
 
-    # Esperar a que el mensaje de error aparezca (max 5 segundos)
-    error_message = WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "//span[contains(text(),'ERROR:')]"))
-    )
-    if error_message:
-        # Si el mensaje de error está presente, hacer clic en el botón "Volver"
-        volver_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable(
-                (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
-        )
-        volver_button.click()
-    else:
+        # Esperar a que el mensaje de error aparezca (max 5 segundos)
+        try:
+            error_message = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//span[contains(text(),'ERROR:')]"))
+            )
+        except TimeoutException:
+            # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+            volver_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+            )
+            volver_button.click()
+            hay_error = True
+        try:
+            # Esperar a que el mensaje de error aparezca (max 5 segundos)
+            sirena_message = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//span[contains(text(),'info-sirena')]"))
+            )
+        except TimeoutException:
+            # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+            volver_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+            )
+            volver_button.click()
+            hay_error = True
+    if not hay_error:
         # Seleccionar por direccion
         por_dir = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.ID, 'apd'))
@@ -189,6 +208,22 @@ def fill_web_form(driver, record):
                 (By.CSS_SELECTOR, "button.btns.btns-gris[onclick='window.close();']"))
         )
         cerrar_button.click()
+
+        driver.switch_to.window(driver.window_handles[-1])
+        # Esperar a que el botón de promovidos sea clickeable y hacer clic
+        time.sleep(3)
+        volver_promovidos_button = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[contains(@onclick, 'window.location=\"./simpatiza.php\"')]"))
+        )
+        volver_promovidos_button.click()
+
+        # Esperar a que el botón de registrar en línea sea clickeable y hacer clic
+        registrar_en_linea_button = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, "button.btns.btns-ok span.ii i.fas.fa-link"))
+        )
+        registrar_en_linea_button.click()
 
 
 def automate_web_form(user, password, records, chrome_driver_path, chrome_binary_path):
