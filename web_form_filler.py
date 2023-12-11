@@ -87,16 +87,13 @@ def fill_web_form(driver, record):
         nombre_input = driver.find_element(By.ID, 'nombre')
         nombre_input.send_keys(record['Nombre'])
 
-        time.sleep(1)
         apellidop_input = driver.find_element(By.ID, 'paterno')
         apellidop_input.send_keys(record['Paterno'])
 
-        time.sleep(1)
         apellidom_input = driver.find_element(By.ID, 'materno')
         apellidom_input.send_keys(record['Materno'])
 
         if not pd.isna(record['CVE_ELEC']):
-            time.sleep(1)
             apellidom_input = driver.find_element(By.ID, 'cve_ife')
             apellidom_input.send_keys(record['CVE_ELEC'])
 
@@ -111,24 +108,20 @@ def fill_web_form(driver, record):
         )
         simpatizante_radio_button.click()
 
-    time.sleep(1)
     calle_input = driver.find_element(By.ID, 'calle')
     calle_input.send_keys(record['Calle'])
 
-    time.sleep(1)
     ext_input = driver.find_element(By.ID, 'num_ext')
     ext_input.send_keys(record['Num'])
 
-    time.sleep(1)
     municipio_dropdown = driver.find_element(By.ID, 'municipio')
     municipio_dropdown.send_keys(record['Municipio'])
 
-    time.sleep(1)
     colonia_input = driver.find_element(By.ID, 'colonia')
     colonia_input.send_keys(record['Colonia'])
 
     if not pd.isna(record['CP']) and not pd.isna(record['Telefono']):
-        time.sleep(1)
+
         ext_input = driver.find_element(By.ID, 'cp')
         ext_input.send_keys(record['CP'])
 
@@ -156,32 +149,52 @@ def fill_web_form(driver, record):
 
         # Esperar a que el mensaje de error aparezca (max 5 segundos)
         try:
-            error_message = WebDriverWait(driver, 5).until(
+            error_message = WebDriverWait(driver, 2).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//span[contains(text(),'ERROR:')]"))
             )
-        except TimeoutException:
             # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+            time.sleep(1)
             volver_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
             )
             volver_button.click()
             hay_error = True
+        except TimeoutException:
+            pass
         try:
             # Esperar a que el mensaje de error aparezca (max 5 segundos)
-            sirena_message = WebDriverWait(driver, 5).until(
+            sirena_message = WebDriverWait(driver, 2).until(
                 EC.presence_of_element_located(
-                    (By.XPATH, "//span[contains(text(),'info-sirena')]"))
+                    (By.XPATH, "//h1[contains(., 'El simpatizante ya existe, fue registrado en info-sirena.')]"))
             )
-        except TimeoutException:
             # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+            time.sleep(1)
             volver_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
             )
             volver_button.click()
             hay_error = True
+        except TimeoutException:
+            pass
+        # Esperar a que el mensaje de error aparezca (max 5 segundos)
+        try:
+            error_message = WebDriverWait(driver, 2).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//b[contains(text(),'ERROR:')]"))
+            )
+            # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+            time.sleep(1)
+            volver_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+            )
+            volver_button.click()
+            hay_error = True
+        except TimeoutException:
+            pass
     if not hay_error:
         # Seleccionar por direccion
         por_dir = WebDriverWait(driver, 10).until(
@@ -193,7 +206,7 @@ def fill_web_form(driver, record):
         driver.switch_to.window(driver.window_handles[-1])
 
         # Esperar 5 segundos después de abrir la nueva página
-        time.sleep(5)
+        time.sleep(1)
 
         # Hacer clic en el botón "Actualizar coordenadas"
         actualizar_coordenadas_button = WebDriverWait(driver, 10).until(
@@ -202,7 +215,7 @@ def fill_web_form(driver, record):
         actualizar_coordenadas_button.click()
 
         # Esperar a que el botón "Cerrar" sea clickeable
-        time.sleep(2)
+        time.sleep(1)
         cerrar_button = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "button.btns.btns-gris[onclick='window.close();']"))
@@ -211,15 +224,15 @@ def fill_web_form(driver, record):
 
         driver.switch_to.window(driver.window_handles[-1])
         # Esperar a que el botón de promovidos sea clickeable y hacer clic
-        time.sleep(3)
-        volver_promovidos_button = WebDriverWait(driver, 15).until(
+        time.sleep(1)
+        volver_promovidos_button = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable(
                 (By.XPATH, "//button[contains(@onclick, 'window.location=\"./simpatiza.php\"')]"))
         )
         volver_promovidos_button.click()
 
         # Esperar a que el botón de registrar en línea sea clickeable y hacer clic
-        registrar_en_linea_button = WebDriverWait(driver, 15).until(
+        registrar_en_linea_button = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "button.btns.btns-ok span.ii i.fas.fa-link"))
         )
