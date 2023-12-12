@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox, ttk
 from excel_processor import ExcelProcessor
 from web_form_filler import main
 import threading
+import os
 
 
 class ErrorWindow:
@@ -100,6 +101,16 @@ class MainWindow:
         self.result_label.grid(row=10, column=0, padx=10,
                                pady=5, sticky="ew", columnspan=2)
 
+        # Agregar etiquetas para el resumen
+        self.label_procesados = ttk.Label(master, text="", background='white')
+        self.label_procesados.grid(
+            row=11, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
+
+        self.label_automation_time = ttk.Label(
+            master, text="", background='white')
+        self.label_automation_time.grid(
+            row=12, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
+
         master.grid_columnconfigure(0, weight=1)
         master.grid_columnconfigure(1, weight=3)
 
@@ -135,9 +146,10 @@ class MainWindow:
         user = self.entry_user.get()
         password = self.entry_password.get()
         district = self.district_var.get()
-
+        directorio_actual = os.getcwd()
         # Ruta actualizada al archivo CSV
-        secciones_csv_path = 'data/secciones_distritos.csv'
+        secciones_csv_path = os.path.join(
+            directorio_actual, "data", "secciones_distritos.csv")
         self.excel_processor = ExcelProcessor(
             file_path, district, secciones_csv_path)
         loaded, message = self.excel_processor.load_excel()
@@ -259,12 +271,23 @@ class MainWindow:
         records = self.get_valid_records()
 
         # Asegúrate de especificar las rutas correctas para tu chromedriver y chrome.exe
-        chrome_driver_path = 'env/chromedriver/chromedriver.exe'
-        chrome_binary_path = 'env/chrome/chrome.exe'
+        directorio_actual = os.getcwd()
+        chrome_driver_path = os.path.join(
+            directorio_actual, "env", "chromedriver", "chromedriver.exe")
+        chrome_binary_path = os.path.join(
+            directorio_actual, "env", "chrome", "chrome.exe")
 
         # Inicia la automatización pasando los datos necesarios
         threading.Thread(target=main, args=(
-            usuario, contrasena, records, chrome_driver_path, chrome_binary_path, self.excel_processor), daemon=True).start()
+            usuario, contrasena, records, chrome_driver_path, chrome_binary_path,
+            self.excel_processor, self.update_ui_callback), daemon=True).start()
+
+    def update_ui_callback(self, resumen, start_time, end_time, total_time, average_record_time):
+        # Actualizar etiquetas con el resumen
+        self.label_procesados.config(text=f"Registros Procesados: {resumen['registros_procesados']}\nRegistros Capturados: {resumen['registros_capturados']}\nRegistros Omitidos: {
+                                     resumen['registros_omitidos']}\n   Registros Duplicados: {resumen['registros_duplicado']}\n   Registros Previos en Sirena: {resumen['registros_sirena']}\n   Registros con otros Errores: {resumen['registros_error']}")
+        self.label_automation_time.config(text=f"Hora de inicio: {start_time.strftime(
+            '%H:%M:%S')}\nHora de finalización: {end_time.strftime('%H:%M:%S')}\nDuración total: {str(total_time)}\nTiempo promedio por Registro: {str(average_record_time)}")
 
     def get_valid_records(self):
         # Asegúrate de que el DataFrame esté cargado

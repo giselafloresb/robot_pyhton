@@ -23,6 +23,8 @@ class ExcelProcessor:
     def validate_columns(self):
         required_columns = ['Nombre', 'Paterno', 'Materno', 'Telefono',
                             'Calle', 'Num', 'Colonia', 'CP', 'CVE_ELEC', 'Municipio', 'Seccion']
+        if 'Error' not in self.df.columns:
+            self.df['Error'] = ''
         missing_columns = [
             col for col in required_columns if col not in self.df.columns]
         if missing_columns:
@@ -88,6 +90,8 @@ class ExcelProcessor:
         except ValueError:
             return False
 
-    def update_record_error(self, index, error_message):
+    def update_record_error(self, index, error_message, record_time):
         # Actualiza el DataFrame con la información del error
+
         self.df.at[index, 'Error'] = error_message
+        self.df.at[index, 'Duracion'] = str(record_time)
