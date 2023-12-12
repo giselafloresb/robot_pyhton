@@ -155,7 +155,7 @@ def fill_web_form(driver, record):
             )
             # Si el mensaje de error está presente, hacer clic en el botón "Volver"
             time.sleep(1)
-            volver_button = WebDriverWait(driver, 10).until(
+            volver_button = WebDriverWait(driver, 2).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
             )
@@ -163,44 +163,46 @@ def fill_web_form(driver, record):
             hay_error = True
             mensaje = "El registro se capturo anteriormente"
         except TimeoutException:
-            pass
-        try:
+            hay_error = False
+        if not hay_error:
+            try:
+                # Esperar a que el mensaje de error aparezca (max 5 segundos)
+                sirena_message = WebDriverWait(driver, 2).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//h1[contains(., 'El simpatizante ya existe, fue registrado en info-sirena.')]"))
+                )
+                # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+                time.sleep(1)
+                volver_button = WebDriverWait(driver, 2).until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+                )
+                volver_button.click()
+                hay_error = True
+                mensaje = "El registro ya se encuentra en sirena"
+            except TimeoutException:
+                hay_error = False
+        if not hay_error:
             # Esperar a que el mensaje de error aparezca (max 5 segundos)
-            sirena_message = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//h1[contains(., 'El simpatizante ya existe, fue registrado en info-sirena.')]"))
-            )
-            # Si el mensaje de error está presente, hacer clic en el botón "Volver"
-            time.sleep(1)
-            volver_button = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
-            )
-            volver_button.click()
-            hay_error = True
-            mensaje = "El registro ya se encuentra en sirena"
-        except TimeoutException:
-            pass
-        # Esperar a que el mensaje de error aparezca (max 5 segundos)
-        try:
-            error_message = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//b[contains(text(),'ERROR:')]"))
-            )
-            # Si el mensaje de error está presente, hacer clic en el botón "Volver"
-            time.sleep(1)
-            volver_button = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
-            )
-            volver_button.click()
-            hay_error = True
-            mensaje = "El registro presento un error"
-        except TimeoutException:
-            pass
+            try:
+                error_message = WebDriverWait(driver, 2).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//b[contains(text(),'ERROR:')]"))
+                )
+                # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+                time.sleep(1)
+                volver_button = WebDriverWait(driver, 2).until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+                )
+                volver_button.click()
+                hay_error = True
+                mensaje = "El registro presento un error"
+            except TimeoutException:
+                hay_error = False
     if not hay_error:
         # Seleccionar por direccion
-        por_dir = WebDriverWait(driver, 10).until(
+        por_dir = WebDriverWait(driver, 2).until(
             EC.element_to_be_clickable((By.ID, 'apd'))
         )
         por_dir.click()

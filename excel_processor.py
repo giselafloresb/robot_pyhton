@@ -49,6 +49,9 @@ class ExcelProcessor:
             if len(telefono_str) != 10:
                 errors.append(
                     "El campo 'Telefono' debe contener 10 dígitos exactos.")
+        else:
+            errors.append(
+                "El campo 'Telefono' no puede estar vacío.")
 
         # Convertir y validar 'CP' si no está vacío
         if not pd.isnull(record['CP']):
