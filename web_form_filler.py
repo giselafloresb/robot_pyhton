@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 import time
 import pandas as pd
+from datetime import datetime
 
 
 def init_webdriver(chrome_driver_path, chrome_binary_path):
@@ -161,7 +162,7 @@ def fill_web_form(driver, record):
             )
             volver_button.click()
             hay_error = True
-            mensaje = "El registro se capturo anteriormente"
+            mensaje = "ERROR1: El registro se capturo anteriormente"
         except TimeoutException:
             hay_error = False
         if not hay_error:
@@ -179,7 +180,7 @@ def fill_web_form(driver, record):
                 )
                 volver_button.click()
                 hay_error = True
-                mensaje = "El registro ya se encuentra en sirena"
+                mensaje = "ERROR2: El registro ya se encuentra en sirena"
             except TimeoutException:
                 hay_error = False
         if not hay_error:
@@ -197,7 +198,7 @@ def fill_web_form(driver, record):
                 )
                 volver_button.click()
                 hay_error = True
-                mensaje = "El registro presento un error"
+                mensaje = "ERROR3: El registro presento un error"
             except TimeoutException:
                 hay_error = False
     if not hay_error:
@@ -246,30 +247,69 @@ def fill_web_form(driver, record):
     return mensaje
 
 
-def automate_web_form(user, password, records, chrome_driver_path, chrome_binary_path, excel_processor):
+def automate_web_form(user, password, records, chrome_driver_path, chrome_binary_path, excel_processor, update_ui_callback):
     driver = init_webdriver(chrome_driver_path, chrome_binary_path)
+    start_time = datetime.now()  # Guardar la hora de inicio
+    resumen = {'registros_procesados': 0, 'registros_capturados': 0, 'registros_omitidos': 0,
+               'registros_duplicado': 0, 'registros_sirena': 0, 'registros_error': 0}
+    average_record_time = 0
+    total_time = 0
     try:
         login(driver, user, password)
         for index, record in records.iterrows():
+            start_record_time = datetime.now()
             mensaje = fill_web_form(driver, record.to_dict())
+
+            resumen['registros_procesados'] += 1
+            if mensaje == "Capturado":
+                resumen['registros_capturados'] += 1
+            elif "ERROR" in mensaje:
+                resumen['registros_omitidos'] += 1
+                if "ERROR1" in mensaje:
+                    resumen['registros_duplicado'] += 1
+                if "ERROR2" in mensaje:
+                    resumen['registros_sirena'] += 1
+                if "ERROR3" in mensaje:
+                    resumen['registros_error'] += 1
+            # Llamar a la función de actualización de la UI
+            end_time = datetime.now()  # Guardar la hora de finalización
+            average_record_time = (end_time - start_time) / \
+                resumen['registros_procesados']
+            record_time = (end_time - start_record_time)
+            total_time = end_time - start_time
             # Actualizar el DataFrame con el mensaje
-            excel_processor.update_record_error(index, mensaje)
+            excel_processor.update_record_error(index, mensaje, record_time)
             # Guardar el DataFrame en el archivo después de cada registro procesado
             excel_processor.df.to_excel(excel_processor.file_path, index=False)
+            update_ui_callback(resumen, start_time, end_time,
+                               total_time, average_record_time)
+            time.sleep(1)  # Un pequeño retraso para visualizar los cambios
+
     except Exception as e:
         print(f"Error en el registro {record}: {e}")
         # Guardar el DataFrame actualizado antes de cerrar debido a un error
+        mensaje = "Error inesperado"
+        excel_processor.update_record_error(index, mensaje)
         excel_processor.df.to_excel(excel_processor.file_path, index=False)
         raise e
     finally:
+        end_time = datetime.now()  # Guardar la hora de finalización
+        total_time = end_time - start_time  # Calcular la duración total
+        print(f"Automatización iniciada a las: {
+              start_time.strftime('%H:%M:%S')}")
+        print(f"Automatización finalizada a las: {
+              end_time.strftime('%H:%M:%S')}")
+        print(f"Duración total: {total_time}")
+        update_ui_callback(resumen, start_time, end_time,
+                           total_time, average_record_time)
         driver.quit()
 
 # Función principal que se llamará desde la UI
 
 
-def main(usuario, contrasena, records, chrome_driver_path, chrome_binary_path, excel_processor):
-    automate_web_form(usuario, contrasena, records,
-                      chrome_driver_path, chrome_binary_path, excel_processor)
+def main(usuario, contrasena, records, chrome_driver_path, chrome_binary_path, excel_processor, update_ui_callback):
+    automate_web_form(usuario, contrasena, records, chrome_driver_path,
+                      chrome_binary_path, excel_processor, update_ui_callback)
 
 
 # Si vas a probar el script de forma independiente puedes usar esta parte,

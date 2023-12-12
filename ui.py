@@ -101,6 +101,16 @@ class MainWindow:
         self.result_label.grid(row=10, column=0, padx=10,
                                pady=5, sticky="ew", columnspan=2)
 
+        # Agregar etiquetas para el resumen
+        self.label_procesados = ttk.Label(master, text="", background='white')
+        self.label_procesados.grid(
+            row=11, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
+
+        self.label_automation_time = ttk.Label(
+            master, text="", background='white')
+        self.label_automation_time.grid(
+            row=12, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
+
         master.grid_columnconfigure(0, weight=1)
         master.grid_columnconfigure(1, weight=3)
 
@@ -269,7 +279,15 @@ class MainWindow:
 
         # Inicia la automatización pasando los datos necesarios
         threading.Thread(target=main, args=(
-            usuario, contrasena, records, chrome_driver_path, chrome_binary_path, self.excel_processor), daemon=True).start()
+            usuario, contrasena, records, chrome_driver_path, chrome_binary_path,
+            self.excel_processor, self.update_ui_callback), daemon=True).start()
+
+    def update_ui_callback(self, resumen, start_time, end_time, total_time, average_record_time):
+        # Actualizar etiquetas con el resumen
+        self.label_procesados.config(text=f"Registros Procesados: {resumen['registros_procesados']}\nRegistros Capturados: {resumen['registros_capturados']}\nRegistros Omitidos: {
+                                     resumen['registros_omitidos']}\n   Registros Duplicados: {resumen['registros_duplicado']}\n   Registros Previos en Sirena: {resumen['registros_sirena']}\n   Registros con otros Errores: {resumen['registros_error']}")
+        self.label_automation_time.config(text=f"Hora de inicio: {start_time.strftime(
+            '%H:%M:%S')}\nHora de finalización: {end_time.strftime('%H:%M:%S')}\nDuración total: {str(total_time)}\nTiempo promedio por Registro: {str(average_record_time)}")
 
     def get_valid_records(self):
         # Asegúrate de que el DataFrame esté cargado
