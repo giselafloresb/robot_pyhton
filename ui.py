@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox, ttk
 from excel_processor import ExcelProcessor
 from web_form_filler import main
 import threading
+import os
 
 
 class ErrorWindow:
@@ -135,9 +136,10 @@ class MainWindow:
         user = self.entry_user.get()
         password = self.entry_password.get()
         district = self.district_var.get()
-
+        directorio_actual = os.getcwd()
         # Ruta actualizada al archivo CSV
-        secciones_csv_path = 'data/secciones_distritos.csv'
+        secciones_csv_path = os.path.join(
+            directorio_actual, "data", "secciones_distritos.csv")
         self.excel_processor = ExcelProcessor(
             file_path, district, secciones_csv_path)
         loaded, message = self.excel_processor.load_excel()
@@ -259,8 +261,11 @@ class MainWindow:
         records = self.get_valid_records()
 
         # Asegúrate de especificar las rutas correctas para tu chromedriver y chrome.exe
-        chrome_driver_path = 'env/chromedriver/chromedriver.exe'
-        chrome_binary_path = 'env/chrome/chrome.exe'
+        directorio_actual = os.getcwd()
+        chrome_driver_path = os.path.join(
+            directorio_actual, "env", "chromedriver", "chromedriver.exe")
+        chrome_binary_path = os.path.join(
+            directorio_actual, "env", "chrome", "chrome.exe")
 
         # Inicia la automatización pasando los datos necesarios
         threading.Thread(target=main, args=(
