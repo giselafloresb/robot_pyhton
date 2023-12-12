@@ -84,3 +84,7 @@ class ExcelProcessor:
             return section_int in valid_sections
         except ValueError:
             return False
+
+    def update_record_error(self, index, error_message):
+        # Actualiza el DataFrame con la información del error
+        self.df.at[index, 'Error'] = error_message

@@ -74,24 +74,31 @@ class MainWindow:
         self.button_start.grid(row=5, column=0, padx=10,
                                pady=10, sticky="ew", columnspan=2)
 
-        self.progress = ttk.Progressbar(
-            master, orient='horizontal', length=200, mode='indeterminate')
-        self.progress.grid(row=6, column=0, padx=10, pady=5,
-                           sticky="ew", columnspan=2)
+        self.automation_button = ttk.Button(
+            master, text="Iniciar Automatización", state='disabled', command=self.start_automation)
+        self.automation_button.grid(
+            row=6, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
 
-        self.result_label = ttk.Label(master, text="", background='white')
-        self.result_label.grid(row=7, column=0, padx=10,
-                               pady=5, sticky="ew", columnspan=2)
-
+        # Inicializar el botón de descarga deshabilitado
         self.download_button = ttk.Button(
             master, text="Descargar Registros Inválidos", state='disabled', command=self.download_invalid_records)
         self.download_button.grid(
+            row=7, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+
+        # Inicializar el botón de descarga completa deshabilitado
+        self.download_complete_button = ttk.Button(
+            master, text="Descargar Excel Completo", state='disabled', command=self.download_complete_excel)
+        self.download_complete_button.grid(
             row=8, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
 
-        self.automation_button = ttk.Button(
-            master, text="Iniciar Automatización", command=self.start_automation)
-        self.automation_button.grid(
-            row=9, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+        self.progress = ttk.Progressbar(
+            master, orient='horizontal', length=200, mode='indeterminate')
+        self.progress.grid(row=9, column=0, padx=10, pady=5,
+                           sticky="ew", columnspan=2)
+
+        self.result_label = ttk.Label(master, text="", background='white')
+        self.result_label.grid(row=10, column=0, padx=10,
+                               pady=5, sticky="ew", columnspan=2)
 
         master.grid_columnconfigure(0, weight=1)
         master.grid_columnconfigure(1, weight=3)
@@ -140,25 +147,67 @@ class MainWindow:
             self.master.after(0, lambda: self.file_name_label.config(
                 text=f"Archivo cargado: {file_path.split('/')[-1]}"))
 
+    # def start_validation(self):
+    #     valid, message = self.excel_processor.validate_columns()
+    #     if not valid:
+    #         messagebox.showerror("Error en el archivo", message)
+    #         return
+
+    #     count_invalid_records = self.excel_processor.validate_records()
+    #     total_invalid = count_invalid_records
+    #     total_valid = len(self.excel_processor.df) - total_invalid
+
+    #     # Actualizar la etiqueta de resultados con la cantidad de registros válidos e inválidos
+    #     if total_invalid > 0:
+    #         self.result_label.config(text=f"Registros válidos: {
+    #                                  total_valid}\nRegistros inválidos: {total_invalid}")
+    #         self.download_button.config(state='normal')
+    #     else:
+    #         self.result_label.config(
+    #             text=f"Todos los registros son válidos. Total registros: {total_valid}")
+    #         self.download_button.config(state='disabled')
+
     def start_validation(self):
-        valid, message = self.excel_processor.validate_columns()
-        if not valid:
-            messagebox.showerror("Error en el archivo", message)
-            return
+        # Deshabilitar el botón mientras se valida
+        self.button_start.config(state='disabled')
+        self.progress.start(10)  # Iniciar la animación de la barra de progreso
+        # Iniciar la validación en un hilo separado
+        threading.Thread(target=self.perform_validation, daemon=True).start()
 
-        count_invalid_records = self.excel_processor.validate_records()
-        total_invalid = count_invalid_records
-        total_valid = len(self.excel_processor.df) - total_invalid
+    def perform_validation(self):
+        try:
+            valid, message = self.excel_processor.validate_columns()
+            if not valid:
+                self.master.after(0, lambda: messagebox.showerror(
+                    "Error en el archivo", message))
+            else:
+                count_invalid_records = self.excel_processor.validate_records()
+                total_invalid = count_invalid_records
+                total_valid = len(self.excel_processor.df) - total_invalid
 
-        # Actualizar la etiqueta de resultados con la cantidad de registros válidos e inválidos
-        if total_invalid > 0:
-            self.result_label.config(text=f"Registros válidos: {
-                                     total_valid}\nRegistros inválidos: {total_invalid}")
-            self.download_button.config(state='normal')
-        else:
-            self.result_label.config(
-                text=f"Todos los registros son válidos. Total registros: {total_valid}")
-            self.download_button.config(state='disabled')
+                # Actualizar la etiqueta de resultados con la cantidad de registros válidos e inválidos
+                self.master.after(0, lambda: self.result_label.config(
+                    text=f"Registros válidos: {
+                        total_valid}\nRegistros inválidos: {total_invalid}"
+                ))
+                # Habilitar los botones si la validación fue exitosa y hay registros válidos
+                if total_valid > 0:
+                    self.master.after(
+                        0, lambda: self.automation_button.config(state='normal'))
+                    self.master.after(
+                        0, lambda: self.download_complete_button.config(state='normal'))
+
+                # Habilitar el botón de descarga si hay registros inválidos
+                if total_invalid > 0:
+                    self.master.after(
+                        0, lambda: self.download_button.config(state='normal'))
+        except Exception as e:
+            self.master.after(0, lambda: messagebox.showerror("Error", str(e)))
+        finally:
+            # Detener la barra de progreso y habilitar el botón de inicio
+            self.master.after(0, lambda: self.progress.stop())
+            self.master.after(
+                0, lambda: self.button_start.config(state='normal'))
 
     def download_invalid_records(self):
         # Pedir al usuario que elija dónde guardar el archivo de registros eliminados
@@ -167,33 +216,41 @@ class MainWindow:
             filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
             title="Guardar registros eliminados como"
         )
+
+        # Verificar si el usuario seleccionó un archivo
         if filepath:
-            # Guardar los registros eliminados en la ubicación seleccionada
+            # Filtrar los registros inválidos
+            invalid_records_df = self.excel_processor.df[self.excel_processor.df['Error'] != ""]
+
+            # Intentar guardar el archivo Excel
             try:
-                self.excel_processor.removed_records.to_excel(
-                    filepath, index=False)
+                # Guardar el DataFrame de registros inválidos en la ubicación seleccionada
+                invalid_records_df.to_excel(filepath, index=False)
                 messagebox.showinfo(
-                    "Guardar archivo", f"Registros eliminados guardados exitosamente en {filepath}")
+                    "Guardar archivo", f"Archivo guardado exitosamente en {filepath}")
             except Exception as e:
                 messagebox.showerror(
-                    "Error", f"Ocurrió un error al guardar el archivo: {e}")
+                    "Guardar archivo", f"Ocurrió un error al guardar el archivo: {e}")
 
-    def download_corrected_records(self):
-        # Pedir al usuario que elija dónde guardar el archivo de registros corregidos
+    def download_complete_excel(self):
+        # Pedir al usuario que elija dónde guardar el archivo Excel completo
         filepath = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-            title="Guardar registros corregidos como"
+            title="Guardar archivo Excel completo como"
         )
+
+        # Verificar si el usuario seleccionó un archivo
         if filepath:
-            # Guardar los registros corregidos en la ubicación seleccionada
+            # Intentar guardar el archivo Excel
             try:
+                # Guardar el DataFrame completo en la ubicación seleccionada
                 self.excel_processor.df.to_excel(filepath, index=False)
                 messagebox.showinfo(
-                    "Guardar archivo", f"Registros corregidos guardados exitosamente en {filepath}")
+                    "Guardar archivo", f"El archivo completo ha sido guardado en {filepath}")
             except Exception as e:
                 messagebox.showerror(
-                    "Error", f"Ocurrió un error al guardar el archivo: {e}")
+                    "Guardar archivo", f"Ocurrió un error al guardar el archivo: {e}")
 
     def start_automation(self):
         usuario = self.entry_user.get()
@@ -206,20 +263,15 @@ class MainWindow:
         chrome_binary_path = 'env/chrome/chrome.exe'
 
         # Inicia la automatización pasando los datos necesarios
-        main(usuario, contrasena, records,
-             chrome_driver_path, chrome_binary_path)
+        threading.Thread(target=main, args=(
+            usuario, contrasena, records, chrome_driver_path, chrome_binary_path, self.excel_processor), daemon=True).start()
 
     def get_valid_records(self):
         # Asegúrate de que el DataFrame esté cargado
         if self.excel_processor.df is not None:
             # Filtra los registros sin errores
             valid_records_df = self.excel_processor.df[self.excel_processor.df['Error'] == ""]
-
-            # Convierte el DataFrame de registros válidos a una lista de diccionarios
-            valid_records = valid_records_df.to_dict('records')
-            return valid_records
-        else:
-            return []
+            return valid_records_df
 
 
 if __name__ == "__main__":

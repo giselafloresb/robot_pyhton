@@ -146,7 +146,7 @@ def fill_web_form(driver, record):
     enviar_guardar_button.click()
     hay_error = False
     if not pd.isna(record['Telefono']):
-
+        driver.switch_to.window(driver.window_handles[-1])
         # Esperar a que el mensaje de error aparezca (max 5 segundos)
         try:
             error_message = WebDriverWait(driver, 2).until(
@@ -161,38 +161,41 @@ def fill_web_form(driver, record):
             )
             volver_button.click()
             hay_error = True
+            mensaje = "El registro se capturo anteriormente"
         except TimeoutException:
             pass
         try:
             # Esperar a que el mensaje de error aparezca (max 5 segundos)
-            sirena_message = WebDriverWait(driver, 2).until(
+            sirena_message = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//h1[contains(., 'El simpatizante ya existe, fue registrado en info-sirena.')]"))
             )
             # Si el mensaje de error está presente, hacer clic en el botón "Volver"
             time.sleep(1)
-            volver_button = WebDriverWait(driver, 10).until(
+            volver_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
             )
             volver_button.click()
             hay_error = True
+            mensaje = "El registro ya se encuentra en sirena"
         except TimeoutException:
             pass
         # Esperar a que el mensaje de error aparezca (max 5 segundos)
         try:
-            error_message = WebDriverWait(driver, 2).until(
+            error_message = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//b[contains(text(),'ERROR:')]"))
             )
             # Si el mensaje de error está presente, hacer clic en el botón "Volver"
             time.sleep(1)
-            volver_button = WebDriverWait(driver, 10).until(
+            volver_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
             )
             volver_button.click()
             hay_error = True
+            mensaje = "El registro presento un error"
         except TimeoutException:
             pass
     if not hay_error:
@@ -237,30 +240,34 @@ def fill_web_form(driver, record):
                 (By.CSS_SELECTOR, "button.btns.btns-ok span.ii i.fas.fa-link"))
         )
         registrar_en_linea_button.click()
+        mensaje = "Capturado"
+    return mensaje
 
 
-def automate_web_form(user, password, records, chrome_driver_path, chrome_binary_path):
+def automate_web_form(user, password, records, chrome_driver_path, chrome_binary_path, excel_processor):
     driver = init_webdriver(chrome_driver_path, chrome_binary_path)
-
     try:
         login(driver, user, password)
-
-        for record in records:
-            fill_web_form(driver, record)
-            # Agregar un tiempo de espera entre envíos si es necesario
-            time.sleep(1)
-
-    except TimeoutException as e:
-        print(f"Se produjo un error con el mensaje: {e}")
+        for index, record in records.iterrows():
+            mensaje = fill_web_form(driver, record.to_dict())
+            # Actualizar el DataFrame con el mensaje
+            excel_processor.update_record_error(index, mensaje)
+            # Guardar el DataFrame en el archivo después de cada registro procesado
+            excel_processor.df.to_excel(excel_processor.file_path, index=False)
+    except Exception as e:
+        print(f"Error en el registro {record}: {e}")
+        # Guardar el DataFrame actualizado antes de cerrar debido a un error
+        excel_processor.df.to_excel(excel_processor.file_path, index=False)
+        raise e
     finally:
         driver.quit()
 
 # Función principal que se llamará desde la UI
 
 
-def main(usuario, contrasena, records, chrome_driver_path, chrome_binary_path):
+def main(usuario, contrasena, records, chrome_driver_path, chrome_binary_path, excel_processor):
     automate_web_form(usuario, contrasena, records,
-                      chrome_driver_path, chrome_binary_path)
+                      chrome_driver_path, chrome_binary_path, excel_processor)
 
 
 # Si vas a probar el script de forma independiente puedes usar esta parte,
