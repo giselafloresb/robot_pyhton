@@ -47,12 +47,22 @@ class MainWindow:
             row=1, column=1, padx=10, pady=5, sticky="ew")
 
         # Campo para especificar el número máximo de registros a procesar
+        ttk.Label(master, text="Número de registros a capturar:").grid(
+            row=2, column=1, padx=10, pady=5, sticky="e")
         self.max_records_var = tk.IntVar()
         self.entry_max_records = ttk.Entry(
             master, textvariable=self.max_records_var)
         self.entry_max_records.grid(
-            row=2, column=1, padx=10, pady=5, sticky="ew")
-        self.entry_max_records.insert(0, "10")  # Un valor predeterminado
+            row=3, column=1, padx=10, pady=5, sticky="ew")
+
+        # Campo para especificar el número máximo de registros a procesar
+        ttk.Label(master, text="Tempo entre registros (segundos):").grid(
+            row=4, column=1, padx=10, pady=5, sticky="e")
+        self.espera_var = tk.IntVar()
+        self.entry_espera = ttk.Entry(
+            master, textvariable=self.espera_var)
+        self.entry_espera.grid(
+            row=5, column=1, padx=10, pady=5, sticky="ew")
 
         # Boton iniciar automatizacion
         self.automation_button = ttk.Button(
@@ -63,12 +73,12 @@ class MainWindow:
         # Agregar etiquetas para el resumen
         self.label_procesados = ttk.Label(master, text="", background='white')
         self.label_procesados.grid(
-            row=11, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
+            row=7, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
 
         self.label_automation_time = ttk.Label(
             master, text="", background='white')
         self.label_automation_time.grid(
-            row=12, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
+            row=8, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
 
         master.grid_columnconfigure(0, weight=1)
         master.grid_columnconfigure(1, weight=3)
@@ -135,6 +145,7 @@ class MainWindow:
         contrasena = self.selected_password
         distrito = self.district_var.get()
         max_records = self.max_records_var.get()
+        espera = self.espera_var.get()
 
         # Asegúrate de especificar las rutas correctas para tu chromedriver y chrome.exe
         directorio_actual = os.getcwd()
@@ -144,11 +155,11 @@ class MainWindow:
             directorio_actual, "env", "chrome", "chrome.exe")
 
         threading.Thread(target=self.run_automation, args=(
-            usuario, contrasena, max_records, distrito, chrome_driver_path, chrome_binary_path), daemon=True).start()
+            usuario, contrasena, max_records, espera, distrito, chrome_driver_path, chrome_binary_path), daemon=True).start()
 
-    def run_automation(self, usuario, contrasena, max_records, distrito, chrome_driver_path, chrome_binary_path):
+    def run_automation(self, usuario, contrasena, max_records, espera, distrito, chrome_driver_path, chrome_binary_path):
         try:
-            main(usuario, contrasena, distrito, max_records, chrome_driver_path,
+            main(usuario, contrasena, distrito, max_records, espera, chrome_driver_path,
                  chrome_binary_path, self.db_processor, self.update_ui_callback)
         except Exception as e:
             print(f"Error en la automatización: {e}")
