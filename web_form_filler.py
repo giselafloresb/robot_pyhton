@@ -259,7 +259,7 @@ def fill_web_form(driver, record):
     return mensaje
 
 
-def automate_web_form(user, password, distrito, max_records, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
+def automate_web_form(user, password, distrito, max_records, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
     driver = init_webdriver(chrome_driver_path, chrome_binary_path)
     start_time = datetime.now()  # Guardar la hora de inicio
     resumen = {'registros_procesados': 0, 'registros_capturados': 0, 'registros_omitidos': 0,
@@ -302,8 +302,8 @@ def automate_web_form(user, password, distrito, max_records, chrome_driver_path,
                     resumen['registros_procesados']
                 total_time = end_time - start_time
                 # Actualizar el DataFrame con el mensaje
-
-                records_processed += 1
+                if mensaje == "Capturado":
+                    records_processed += 1
 
             except Exception as e:
                 print(f"Error procesando el registro {record}: {e}")
@@ -335,11 +335,12 @@ def automate_web_form(user, password, distrito, max_records, chrome_driver_path,
         print(mensaje_salida)
         update_ui_callback(resumen, start_time, end_time,
                            total_time, average_record_time, mensaje_salida)
+        time.sleep(espera)
         driver.quit()
 
 # Función principal que se llamará desde la UI
 
 
-def main(usuario, contrasena, distrito, max_records, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
-    automate_web_form(usuario, contrasena, distrito, max_records, chrome_driver_path,
+def main(usuario, contrasena, distrito, max_records, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
+    automate_web_form(usuario, contrasena, distrito, max_records, espera, chrome_driver_path,
                       chrome_binary_path, db_processor, update_ui_callback)
