@@ -1,22 +1,11 @@
+# ui.py
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from excel_processor import ExcelProcessor
+from database_processor import DatabaseProcessor
 from web_form_filler import main
 import threading
 import os
-
-
-class ErrorWindow:
-    def __init__(self, master, errors):
-        self.master = master
-        master.title("Errores de Validación")
-
-        self.error_text = tk.Text(master, wrap=tk.WORD)
-        self.error_text.pack(fill=tk.BOTH, expand=True)
-
-        self.error_text.insert(tk.END, "Errores de Validación:\n\n")
-        for i, error in enumerate(errors, start=1):
-            self.error_text.insert(tk.END, f"Registro {i}:\n{error}\n\n")
 
 
 class MainWindow:
@@ -24,6 +13,7 @@ class MainWindow:
         self.master = master
         master.title("Captura Masiva")
         master.configure(bg='white')
+        self.db_processor = DatabaseProcessor()
 
         style = ttk.Style()
         style.theme_use('default')
@@ -38,68 +28,37 @@ class MainWindow:
         style.map('TButton', background=[
                   ('active', guinda_color)], foreground=[('active', 'white')])
 
-        self.label_user = ttk.Label(master, text="Usuario")
-        self.label_user.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
-
-        self.entry_user = ttk.Entry(master)
-        self.entry_user.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
-
-        self.label_password = ttk.Label(master, text="Contraseña")
-        self.label_password.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
-
-        self.entry_password = ttk.Entry(master, show="*")
-        self.entry_password.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
-
-        self.label_district = ttk.Label(master, text="Distrito")
-        self.label_district.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
-
+        # Distritos
         self.district_var = tk.StringVar(master)
-        self.district_var.set("Selecciona un Distrito")  # Valor por defecto
+        self.district_var.trace("w", self.district_selected)
         self.optionmenu_district = ttk.OptionMenu(
-            master, self.district_var, "Selecciona un Distrito", *[str(i) for i in range(1, 9)])
+            master, self.district_var, "Selecciona un Distrito", *[])
         self.optionmenu_district.grid(
+            row=0, column=1, padx=10, pady=5, sticky="ew")
+        self.load_districts()
+
+        # Usuarios
+        self.user_var = tk.StringVar(master)
+        self.user_var.trace(
+            "w", lambda *args: self.verificar_datos_completos(*args))
+        self.optionmenu_user = ttk.OptionMenu(
+            master, self.user_var, "Selecciona un Usuario", *[])
+        self.optionmenu_user.grid(
+            row=1, column=1, padx=10, pady=5, sticky="ew")
+
+        # Campo para especificar el número máximo de registros a procesar
+        self.max_records_var = tk.IntVar()
+        self.entry_max_records = ttk.Entry(
+            master, textvariable=self.max_records_var)
+        self.entry_max_records.grid(
             row=2, column=1, padx=10, pady=5, sticky="ew")
+        self.entry_max_records.insert(0, "10")  # Un valor predeterminado
 
-        self.file_name_label = ttk.Label(
-            master, text="Ningún archivo seleccionado", background='white')
-        self.file_name_label.grid(
-            row=3, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
-
-        self.button_load = ttk.Button(
-            master, text="Cargar Archivo Excel", command=self.load_file)
-        self.button_load.grid(row=4, column=0, padx=10,
-                              pady=10, sticky="ew", columnspan=2)
-
-        self.button_start = ttk.Button(
-            master, text="Iniciar Validación", state='disabled', command=self.start_validation)
-        self.button_start.grid(row=5, column=0, padx=10,
-                               pady=10, sticky="ew", columnspan=2)
-
+        # Boton iniciar automatizacion
         self.automation_button = ttk.Button(
             master, text="Iniciar Automatización", state='disabled', command=self.start_automation)
         self.automation_button.grid(
             row=6, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
-
-        # Inicializar el botón de descarga deshabilitado
-        self.download_button = ttk.Button(
-            master, text="Descargar Registros Inválidos", state='disabled', command=self.download_invalid_records)
-        self.download_button.grid(
-            row=7, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
-
-        # Inicializar el botón de descarga completa deshabilitado
-        self.download_complete_button = ttk.Button(
-            master, text="Descargar Excel Completo", state='disabled', command=self.download_complete_excel)
-        self.download_complete_button.grid(
-            row=8, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
-
-        self.progress = ttk.Progressbar(
-            master, orient='horizontal', length=200, mode='indeterminate')
-        self.progress.grid(row=9, column=0, padx=10, pady=5,
-                           sticky="ew", columnspan=2)
-
-        self.result_label = ttk.Label(master, text="", background='white')
-        self.result_label.grid(row=10, column=0, padx=10,
-                               pady=5, sticky="ew", columnspan=2)
 
         # Agregar etiquetas para el resumen
         self.label_procesados = ttk.Label(master, text="", background='white')
@@ -114,161 +73,68 @@ class MainWindow:
         master.grid_columnconfigure(0, weight=1)
         master.grid_columnconfigure(1, weight=3)
 
-    def load_file(self):
-        user = self.entry_user.get()
-        password = self.entry_password.get()
+        self.selected_user = None
+        self.selected_password = None
+
+    def load_districts(self):
+        """
+        Carga los distritos en el menú desplegable.
+        """
+        districts = self.db_processor.fetch_districts()
+        menu = self.optionmenu_district['menu']
+        menu.delete(0, 'end')
+        for district in districts:
+            menu.add_command(label=district['distrito'],
+                             command=lambda value=district['distrito']: self.district_var.set(value))
+        self.district_var.set("Selecciona un Distrito")
+
+    def district_selected(self, *args):
+        """
+        Called when a district is selected. Loads the users of the selected district.
+        """
         district = self.district_var.get()
+        if district and district != "Selecciona un Distrito":
+            users = self.db_processor.fetch_users_by_district(district)
+            menu = self.optionmenu_user['menu']
+            menu.delete(0, 'end')
+            for user in users:
+                menu.add_command(label=user['nombre_completo'],
+                                 command=lambda value=user: self.user_selected(value))
+            self.user_var.set("Selecciona un Usuario")
+        else:
+            # Limpia el menú de usuarios si no se selecciona ningún distrito
+            self.user_var.set("Selecciona un Usuario")
+            self.optionmenu_user['menu'].delete(0, 'end')
+            self.verificar_datos_completos()
 
-        if not user or not password:
-            messagebox.showerror(
-                "Campos Requeridos", "Por favor, complete los campos de usuario y contraseña.")
-            return
+    def user_selected(self, user):
+        """
+        Called when a user is selected. Configures the user and password for use.
+        """
+        self.selected_user = user['usuario']
+        self.selected_password = user['contrasena']
+        # Aquí puedes usar self.selected_user y self.selected_password para la automatización
+        # Actualizar la variable StringVar con el nombre completo del usuario seleccionado
+        self.user_var.set(user['nombre_completo'])
+        self.verificar_datos_completos()
 
-        if district == "Selecciona un Distrito":
-            messagebox.showerror("Distrito Requerido",
-                                 "Por favor, selecciona un distrito.")
-            return
+    def verificar_datos_completos(self, *args):
+        # Verifica si los campos requeridos están completos
+        usuario_seleccionado = self.user_var.get() != "Selecciona un Usuario"
 
-        file_path = filedialog.askopenfilename(
-            title="Selecciona un archivo Excel", filetypes=[("Excel files", "*.xlsx;*.xls")])
-
-        if file_path:
-            self.file_name_label.config(text="Cargando archivo...")
-            self.progress.start(10)
-            threading.Thread(target=self.load_excel, args=(
-                file_path,), daemon=True).start()
-            self.show_download_button()
-
-    def show_download_button(self):
-        self.button_start.config(state='normal')
-
-    def load_excel(self, file_path):
-        user = self.entry_user.get()
-        password = self.entry_password.get()
-        district = self.district_var.get()
-        directorio_actual = os.getcwd()
-        # Ruta actualizada al archivo CSV
-        secciones_csv_path = os.path.join(
-            directorio_actual, "data", "secciones_distritos.csv")
-        self.excel_processor = ExcelProcessor(
-            file_path, district, secciones_csv_path)
-        loaded, message = self.excel_processor.load_excel()
-
-        self.progress.stop()
-        if loaded:
-            self.master.after(0, lambda: self.file_name_label.config(
-                text=f"Archivo cargado: {file_path.split('/')[-1]}"))
-
-    # def start_validation(self):
-    #     valid, message = self.excel_processor.validate_columns()
-    #     if not valid:
-    #         messagebox.showerror("Error en el archivo", message)
-    #         return
-
-    #     count_invalid_records = self.excel_processor.validate_records()
-    #     total_invalid = count_invalid_records
-    #     total_valid = len(self.excel_processor.df) - total_invalid
-
-    #     # Actualizar la etiqueta de resultados con la cantidad de registros válidos e inválidos
-    #     if total_invalid > 0:
-    #         self.result_label.config(text=f"Registros válidos: {
-    #                                  total_valid}\nRegistros inválidos: {total_invalid}")
-    #         self.download_button.config(state='normal')
-    #     else:
-    #         self.result_label.config(
-    #             text=f"Todos los registros son válidos. Total registros: {total_valid}")
-    #         self.download_button.config(state='disabled')
-
-    def start_validation(self):
-        # Deshabilitar el botón mientras se valida
-        self.button_start.config(state='disabled')
-        self.progress.start(10)  # Iniciar la animación de la barra de progreso
-        # Iniciar la validación en un hilo separado
-        threading.Thread(target=self.perform_validation, daemon=True).start()
-
-    def perform_validation(self):
-        try:
-            valid, message = self.excel_processor.validate_columns()
-            if not valid:
-                self.master.after(0, lambda: messagebox.showerror(
-                    "Error en el archivo", message))
-            else:
-                count_invalid_records = self.excel_processor.validate_records()
-                total_invalid = count_invalid_records
-                total_valid = len(self.excel_processor.df) - total_invalid
-
-                # Actualizar la etiqueta de resultados con la cantidad de registros válidos e inválidos
-                self.master.after(0, lambda: self.result_label.config(
-                    text=f"Registros válidos: {
-                        total_valid}\nRegistros inválidos: {total_invalid}"
-                ))
-                # Habilitar los botones si la validación fue exitosa y hay registros válidos
-                if total_valid > 0:
-                    self.master.after(
-                        0, lambda: self.automation_button.config(state='normal'))
-                    self.master.after(
-                        0, lambda: self.download_complete_button.config(state='normal'))
-
-                # Habilitar el botón de descarga si hay registros inválidos
-                if total_invalid > 0:
-                    self.master.after(
-                        0, lambda: self.download_button.config(state='normal'))
-        except Exception as e:
-            self.master.after(0, lambda: messagebox.showerror("Error", str(e)))
-        finally:
-            # Detener la barra de progreso y habilitar el botón de inicio
-            self.master.after(0, lambda: self.progress.stop())
-            self.master.after(
-                0, lambda: self.button_start.config(state='normal'))
-
-    def download_invalid_records(self):
-        # Pedir al usuario que elija dónde guardar el archivo de registros eliminados
-        filepath = filedialog.asksaveasfilename(
-            defaultextension=".xlsx",
-            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-            title="Guardar registros eliminados como"
-        )
-
-        # Verificar si el usuario seleccionó un archivo
-        if filepath:
-            # Filtrar los registros inválidos
-            invalid_records_df = self.excel_processor.df[self.excel_processor.df['Error'] != ""]
-
-            # Intentar guardar el archivo Excel
-            try:
-                # Guardar el DataFrame de registros inválidos en la ubicación seleccionada
-                invalid_records_df.to_excel(filepath, index=False)
-                messagebox.showinfo(
-                    "Guardar archivo", f"Archivo guardado exitosamente en {filepath}")
-            except Exception as e:
-                messagebox.showerror(
-                    "Guardar archivo", f"Ocurrió un error al guardar el archivo: {e}")
-
-    def download_complete_excel(self):
-        # Pedir al usuario que elija dónde guardar el archivo Excel completo
-        filepath = filedialog.asksaveasfilename(
-            defaultextension=".xlsx",
-            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-            title="Guardar archivo Excel completo como"
-        )
-
-        # Verificar si el usuario seleccionó un archivo
-        if filepath:
-            # Intentar guardar el archivo Excel
-            try:
-                # Guardar el DataFrame completo en la ubicación seleccionada
-                self.excel_processor.df.to_excel(filepath, index=False)
-                messagebox.showinfo(
-                    "Guardar archivo", f"El archivo completo ha sido guardado en {filepath}")
-            except Exception as e:
-                messagebox.showerror(
-                    "Guardar archivo", f"Ocurrió un error al guardar el archivo: {e}")
+        if usuario_seleccionado:
+            self.automation_button.config(state='normal')
+        else:
+            self.automation_button.config(state='disabled')
 
     def start_automation(self):
-        usuario = self.entry_user.get()
-        contrasena = self.entry_password.get()
-        # Debes implementar esta función para obtener los registros válidos
-        records = self.get_valid_records()
+        # Deshabilitar el botón al inicio de la automatización
+        self.automation_button.grid_remove()
+
+        usuario = self.selected_user
+        contrasena = self.selected_password
+        distrito = self.district_var.get()
+        max_records = self.max_records_var.get()
 
         # Asegúrate de especificar las rutas correctas para tu chromedriver y chrome.exe
         directorio_actual = os.getcwd()
@@ -277,27 +143,33 @@ class MainWindow:
         chrome_binary_path = os.path.join(
             directorio_actual, "env", "chrome", "chrome.exe")
 
-        # Inicia la automatización pasando los datos necesarios
-        threading.Thread(target=main, args=(
-            usuario, contrasena, records, chrome_driver_path, chrome_binary_path,
-            self.excel_processor, self.update_ui_callback), daemon=True).start()
+        threading.Thread(target=self.run_automation, args=(
+            usuario, contrasena, max_records, distrito, chrome_driver_path, chrome_binary_path), daemon=True).start()
 
-    def update_ui_callback(self, resumen, start_time, end_time, total_time, average_record_time):
+    def run_automation(self, usuario, contrasena, max_records, distrito, chrome_driver_path, chrome_binary_path):
+        try:
+            main(usuario, contrasena, distrito, max_records, chrome_driver_path,
+                 chrome_binary_path, self.db_processor, self.update_ui_callback)
+        except Exception as e:
+            print(f"Error en la automatización: {e}")
+        finally:
+            # Reactivar el botón una vez finalizada la automatización
+            self.master.after(0, self.reactivate_automation_button)
+
+    def reactivate_automation_button(self):
+        # Reactivar el botón de automatización
+        self.automation_button.grid()
+
+    def update_ui_callback(self, resumen, start_time, end_time, total_time, average_record_time, mensaje_salida):
         # Actualizar etiquetas con el resumen
         self.label_procesados.config(text=f"Registros Procesados: {resumen['registros_procesados']}\nRegistros Capturados: {resumen['registros_capturados']}\nRegistros Omitidos: {
                                      resumen['registros_omitidos']}\n   Registros Duplicados: {resumen['registros_duplicado']}\n   Registros Previos en Sirena: {resumen['registros_sirena']}\n   Registros con otros Errores: {resumen['registros_error']}")
         self.label_automation_time.config(text=f"Hora de inicio: {start_time.strftime(
-            '%H:%M:%S')}\nHora de finalización: {end_time.strftime('%H:%M:%S')}\nDuración total: {str(total_time)}\nTiempo promedio por Registro: {str(average_record_time)}")
-
-    def get_valid_records(self):
-        # Asegúrate de que el DataFrame esté cargado
-        if self.excel_processor.df is not None:
-            # Filtra los registros sin errores
-            valid_records_df = self.excel_processor.df[self.excel_processor.df['Error'] == ""]
-            return valid_records_df
+            '%H:%M:%S')}\nHora de finalización: {end_time.strftime('%H:%M:%S')}\nDuración total: {str(total_time)}\nTiempo promedio por Registro: {str(average_record_time)}\n\n {mensaje_salida}")
 
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = MainWindow(root)
+    app.verificar_datos_completos()  # Inicializa el estado del botón de automatización
     root.mainloop()
