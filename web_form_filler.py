@@ -135,7 +135,7 @@ def fill_web_form(driver, record):
     driver.find_element('id', 'info').click()
 
     # Hacer clic en el botón "Enviar/Guardar"
-    enviar_guardar_button = WebDriverWait(driver, 100).until(
+    enviar_guardar_button = WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable((By.ID, 'submitokm'))
     )
     enviar_guardar_button.click()
@@ -144,81 +144,84 @@ def fill_web_form(driver, record):
         driver.switch_to.window(driver.window_handles[-1])
         # Esperar a que el mensaje de error aparezca (max 5 segundos)
         try:
-            error_message = WebDriverWait(driver, 2).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//span[contains(text(),'ERROR:')]"))
+            # Seleccionar por direccion
+            por_dir = WebDriverWait(driver, 2).until(
+                EC.element_to_be_clickable((By.ID, 'apd'))
             )
-            # Si el mensaje de error está presente, hacer clic en el botón "Volver"
-            time.sleep(1)
-            volver_button = WebDriverWait(driver, 2).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
-            )
-            volver_button.click()
-            hay_error = True
-            mensaje = "ERROR1: El registro se capturo anteriormente"
+            por_dir.click()
         except TimeoutException:
-            hay_error = False
-        if not hay_error:
             try:
+                error_message = WebDriverWait(driver, 2).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "/html/body/h1/font/span[contains(text(),'ERROR:')]"))
+                )
+                # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+                time.sleep(1)
+                volver_button = WebDriverWait(driver, 2).until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+                )
+                volver_button.click()
+                hay_error = True
+                mensaje = "ERROR1: El registro se capturo anteriormente"
+            except TimeoutException:
+                hay_error = False
+            if not hay_error:
+                try:
+                    # Esperar a que el mensaje de error aparezca (max 5 segundos)
+                    sirena_message = WebDriverWait(driver, 2).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//h1[contains(., 'El simpatizante ya existe, fue registrado en info-sirena.')]"))
+                    )
+                    # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+                    time.sleep(1)
+                    volver_button = WebDriverWait(driver, 2).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+                    )
+                    volver_button.click()
+                    hay_error = True
+                    mensaje = "ERROR2: El registro ya se encuentra en sirena"
+                except TimeoutException:
+                    hay_error = False
+            if not hay_error:
                 # Esperar a que el mensaje de error aparezca (max 5 segundos)
-                sirena_message = WebDriverWait(driver, 2).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//h1[contains(., 'El simpatizante ya existe, fue registrado en info-sirena.')]"))
-                )
-                # Si el mensaje de error está presente, hacer clic en el botón "Volver"
-                time.sleep(1)
-                volver_button = WebDriverWait(driver, 2).until(
-                    EC.element_to_be_clickable(
-                        (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
-                )
-                volver_button.click()
-                hay_error = True
-                mensaje = "ERROR2: El registro ya se encuentra en sirena"
-            except TimeoutException:
-                hay_error = False
-        if not hay_error:
-            # Esperar a que el mensaje de error aparezca (max 5 segundos)
-            try:
-                error_message = WebDriverWait(driver, 2).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//b[contains(text(),'ERROR:')]"))
-                )
-                # Si el mensaje de error está presente, hacer clic en el botón "Volver"
-                time.sleep(1)
-                volver_button = WebDriverWait(driver, 2).until(
-                    EC.element_to_be_clickable(
-                        (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
-                )
-                volver_button.click()
-                hay_error = True
-                mensaje = "ERROR3: El registro presento un error"
-            except TimeoutException:
-                hay_error = False
-        if not hay_error:
-            # Esperar a que el mensaje de error aparezca (max 5 segundos)
-            try:
-                error_message = WebDriverWait(driver, 2).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//b[contains(text(),'Dato Invválido')]"))
-                )
-                # Si el mensaje de error está presente, hacer clic en el botón "Volver"
-                time.sleep(1)
-                volver_button = WebDriverWait(driver, 2).until(
-                    EC.element_to_be_clickable(
-                        (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
-                )
-                volver_button.click()
-                hay_error = True
-                mensaje = "ERROR4: Dato Inválido"
-            except TimeoutException:
-                hay_error = False
+                try:
+                    error_message = WebDriverWait(driver, 2).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//b[contains(text(),'ERROR:')]"))
+                    )
+                    # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+                    time.sleep(1)
+                    volver_button = WebDriverWait(driver, 2).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+                    )
+                    volver_button.click()
+                    hay_error = True
+                    mensaje = "ERROR3: El registro presento un error"
+                except TimeoutException:
+                    hay_error = False
+            if not hay_error:
+                # Esperar a que el mensaje de error aparezca (max 5 segundos)
+                try:
+                    error_message = WebDriverWait(driver, 2).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "/html/body/h1/font/b[contains(text(),'Dato inválido,')]"))
+                    )
+                    # Si el mensaje de error está presente, hacer clic en el botón "Volver"
+                    time.sleep(1)
+                    volver_button = WebDriverWait(driver, 2).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, "//button[contains(@onclick, 'window.location=\"./sload.php\"')]"))
+                    )
+                    volver_button.click()
+                    hay_error = True
+                    mensaje = "ERROR4: Dato Inválido"
+                except TimeoutException:
+                    hay_error = False
+
     if not hay_error:
-        # Seleccionar por direccion
-        por_dir = WebDriverWait(driver, 2).until(
-            EC.element_to_be_clickable((By.ID, 'apd'))
-        )
-        por_dir.click()
 
         # Cambiar a la nueva ventana o pestaña
         driver.switch_to.window(driver.window_handles[-1])
@@ -227,14 +230,14 @@ def fill_web_form(driver, record):
         time.sleep(1)
 
         # Hacer clic en el botón "Actualizar coordenadas"
-        actualizar_coordenadas_button = WebDriverWait(driver, 10).until(
+        actualizar_coordenadas_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.ID, 'actualizar'))
         )
         actualizar_coordenadas_button.click()
 
         # Esperar a que el botón "Cerrar" sea clickeable
         time.sleep(1)
-        cerrar_button = WebDriverWait(driver, 5).until(
+        cerrar_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "button.btns.btns-gris[onclick='window.close();']"))
         )
@@ -243,14 +246,14 @@ def fill_web_form(driver, record):
         driver.switch_to.window(driver.window_handles[-1])
         # Esperar a que el botón de promovidos sea clickeable y hacer clic
         time.sleep(1)
-        volver_promovidos_button = WebDriverWait(driver, 5).until(
+        volver_promovidos_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable(
                 (By.XPATH, "//button[contains(@onclick, 'window.location=\"./simpatiza.php\"')]"))
         )
         volver_promovidos_button.click()
 
         # Esperar a que el botón de registrar en línea sea clickeable y hacer clic
-        registrar_en_linea_button = WebDriverWait(driver, 5).until(
+        registrar_en_linea_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "button.btns.btns-ok span.ii i.fas.fa-link"))
         )
@@ -259,88 +262,98 @@ def fill_web_form(driver, record):
     return mensaje
 
 
-def automate_web_form(user, password, distrito, max_records, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
-    driver = init_webdriver(chrome_driver_path, chrome_binary_path)
-    start_time = datetime.now()  # Guardar la hora de inicio
-    resumen = {'registros_procesados': 0, 'registros_capturados': 0, 'registros_omitidos': 0,
-               'registros_duplicado': 0, 'registros_sirena': 0, 'registros_error': 0}
-    average_record_time = 0
-    total_time = 0
+def automate_web_form(user, password, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
+    driver = None
+    mensaje = ""
+    mensaje_salida = ""
+    end_time = datetime.now()
+    total_time = end_time - start_time
+    if records_processed == 0:
+        average_record_time = 0
+    else:
+        average_record_time = total_time / records_processed
     try:
+        driver = init_webdriver(chrome_driver_path, chrome_binary_path)
         login(driver, user, password)
-        records_processed = 0
 
         while records_processed < max_records:
-            try:
-                # Obtener el siguiente registro pendiente
-                record = db_processor.fetch_next_record(distrito)
-
-                if not record:
-                    print("no hay registros pendientes")
-                    break  # No hay más registros pendientes
-                start_record_time = datetime.now()
-                db_processor.update_record_start(
-                    record['id'], start_record_time)
-                mensaje = fill_web_form(driver, record)
-                end_time = datetime.now()  # Guardar la hora de finalización
-                db_processor.update_record_end(record['id'], end_time, mensaje)
-                resumen['registros_procesados'] += 1
-                if mensaje == "Capturado":
-                    resumen['registros_capturados'] += 1
-                elif "ERROR" in mensaje:
-                    resumen['registros_omitidos'] += 1
-                    if "ERROR1" in mensaje:
-                        resumen['registros_duplicado'] += 1
-                    if "ERROR2" in mensaje:
-                        resumen['registros_sirena'] += 1
-                    if "ERROR3" in mensaje:
-                        resumen['registros_error'] += 1
-                    if "ERROR4" in mensaje:
-                        resumen['registros_error'] += 1
-                # Llamar a la función de actualización de la UI
-                average_record_time = (end_time - start_time) / \
-                    resumen['registros_procesados']
-                total_time = end_time - start_time
-                # Actualizar el DataFrame con el mensaje
-                if mensaje == "Capturado":
-                    records_processed += 1
-
-            except Exception as e:
-                print(f"Error procesando el registro {record}: {e}")
-                # Manejar el error, marcar el registro como error, etc.
-                if record:
-                    db_processor.update_record_end(record['id'], "error")
-                resumen['registros_error'] += 1
-                continue  # Continuar con el siguiente registro
-            mensaje_salida = f"Procesado correctamente resultado : {mensaje}"
+            mensaje_salida = "Procesando Registro..."
             update_ui_callback(resumen, start_time, end_time,
                                total_time, average_record_time, mensaje_salida)
-        mensaje_salida = "Concluido con exito"
+            record = db_processor.fetch_next_record(distrito)
+            if not record:
+                mensaje_salida = "Automatizacion Concluida:\nNo hay más registros pendientes."
+                print("No hay más registros pendientes.")
+                break
+
+            start_record_time = datetime.now()
+            db_processor.update_record_start(record['id'], start_record_time)
+            mensaje = fill_web_form(driver, record)
+            end_time = datetime.now()
+            db_processor.update_record_end(record['id'], end_time, mensaje)
+            resumen['registros_procesados'] += 1
+            if mensaje == "Capturado":
+                resumen['registros_capturados'] += 1
+            elif "ERROR" in mensaje:
+                resumen['registros_omitidos'] += 1
+                if "ERROR1" in mensaje:
+                    resumen['registros_duplicado'] += 1
+                if "ERROR2" in mensaje:
+                    resumen['registros_sirena'] += 1
+                if "ERROR3" in mensaje:
+                    resumen['registros_error'] += 1
+                if "ERROR4" in mensaje:
+                    resumen['registros_error'] += 1
+
+            # Actualizar el DataFrame con el mensaje
+            if mensaje == "Capturado":
+                records_processed += 1
+
+            # Llamada al callback de actualización de la UI
+            average_record_time = (end_time - start_time) / \
+                resumen['registros_procesados']
+            total_time = end_time - start_time
+            mensaje_salida = f"Resultado: \n{mensaje}"
+            update_ui_callback(resumen, start_time, end_time,
+                               total_time, average_record_time, mensaje_salida)
+
     except Exception as e:
-        end_time = datetime.now()  # Guardar la hora de finalización
-        print(f"Error en el registro {record}: {e}")
-        # Guardar el DataFrame actualizado antes de cerrar debido a un error
-        mensaje = "Error Inesperado"
-        db_processor.update_record_end(record['id'], end_time, mensaje)
-        mensaje_salida = "Concluido con errores"
-        raise e
+        print(f"Error general en la automatización: {e}")
+
+        if driver:
+            driver.quit()
+        driver = None
+        # Reintentar la automatización en caso de fallo general
+        if records_processed < max_records:
+            print("Reintentando la automatización...")
+            mensaje_salida = "Reintentando la automatización..."
+            update_ui_callback(resumen, start_time, end_time,
+                               total_time, average_record_time, mensaje_salida)
+            time.sleep(espera)  # Esperar un tiempo antes de reintentar
+            return automate_web_form(user, password, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback)
+
     finally:
-        end_time = datetime.now()  # Guardar la hora de finalización
-        total_time = end_time - start_time  # Calcular la duración total
+        if driver:
+            driver.quit()
+        end_time = datetime.now()
+        total_time = end_time - start_time
+        if resumen['registros_procesados'] == 0:
+            average_record_time = 0
+        else:
+            average_record_time = total_time / resumen['registros_procesados']
+        if records_processed == max_records:
+            mensaje_salida = "Automatización concluida"
         print(f"Automatización iniciada a las: {
               start_time.strftime('%H:%M:%S')}")
         print(f"Automatización finalizada a las: {
               end_time.strftime('%H:%M:%S')}")
         print(f"Duración total: {total_time}")
-        print(mensaje_salida)
         update_ui_callback(resumen, start_time, end_time,
                            total_time, average_record_time, mensaje_salida)
-        time.sleep(espera)
-        driver.quit()
 
 # Función principal que se llamará desde la UI
 
 
-def main(usuario, contrasena, distrito, max_records, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
-    automate_web_form(usuario, contrasena, distrito, max_records, espera, chrome_driver_path,
+def main(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
+    automate_web_form(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path,
                       chrome_binary_path, db_processor, update_ui_callback)

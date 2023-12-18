@@ -6,6 +6,7 @@ from database_processor import DatabaseProcessor
 from web_form_filler import main
 import threading
 import os
+from datetime import datetime
 
 
 class MainWindow:
@@ -145,7 +146,17 @@ class MainWindow:
         contrasena = self.selected_password
         distrito = self.district_var.get()
         max_records = self.max_records_var.get()
+        start_time = datetime.now()
         espera = self.espera_var.get()
+        records_processed = 0
+        resumen = {
+            'registros_procesados': 0,
+            'registros_capturados': 0,
+            'registros_omitidos': 0,
+            'registros_duplicado': 0,
+            'registros_sirena': 0,
+            'registros_error': 0
+        }
 
         # Asegúrate de especificar las rutas correctas para tu chromedriver y chrome.exe
         directorio_actual = os.getcwd()
@@ -155,11 +166,11 @@ class MainWindow:
             directorio_actual, "env", "chrome", "chrome.exe")
 
         threading.Thread(target=self.run_automation, args=(
-            usuario, contrasena, max_records, espera, distrito, chrome_driver_path, chrome_binary_path), daemon=True).start()
+            usuario, contrasena, max_records, start_time, records_processed, resumen, espera, distrito, chrome_driver_path, chrome_binary_path), daemon=True).start()
 
-    def run_automation(self, usuario, contrasena, max_records, espera, distrito, chrome_driver_path, chrome_binary_path):
+    def run_automation(self, usuario, contrasena, max_records, start_time, records_processed, resumen, espera, distrito, chrome_driver_path, chrome_binary_path):
         try:
-            main(usuario, contrasena, distrito, max_records, espera, chrome_driver_path,
+            main(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path,
                  chrome_binary_path, self.db_processor, self.update_ui_callback)
         except Exception as e:
             print(f"Error en la automatización: {e}")

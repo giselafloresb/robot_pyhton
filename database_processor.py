@@ -29,7 +29,7 @@ class DatabaseProcessor:
             SELECT r.*
                 FROM registros r 
                 JOIN secciones s ON r.seccion = s.num_seccion
-            WHERE isnull(estatus) AND s.dist_fed = %s 
+            WHERE (isnull(estatus) OR r.estatus = 'Error Inesperado') AND s.dist_fed = %s
             ORDER BY id ASC LIMIT 1
             """
         self.cursor.execute(query, (district,))
