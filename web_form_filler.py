@@ -262,7 +262,7 @@ def fill_web_form(driver, record):
     return mensaje
 
 
-def automate_web_form(user, password, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
+def automate_web_form(user, password, distrito, max_records, start_time, records_processed, resumen, espera, hora_ini, hora_fin, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
     driver = None
     mensaje = ""
     mensaje_salida = ""
@@ -277,6 +277,17 @@ def automate_web_form(user, password, distrito, max_records, start_time, records
         login(driver, user, password)
 
         while records_processed < max_records:
+            now = datetime.now().time()
+            # Comprobar si la hora actual está dentro del rango permitido
+            if not (hora_ini <= now <= hora_fin):
+                mensaje_salida = "Fuera del horario programado. Esperando..."
+                update_ui_callback(resumen, start_time, end_time,
+                                   total_time, average_record_time, mensaje_salida)
+                print("Fuera del horario programado. Esperando...")
+                # Esperar un tiempo antes de la próxima comprobación
+                time.sleep(60)
+                continue  # Continuar con la siguiente iteración del bucle
+
             mensaje_salida = "Procesando Registro..."
             update_ui_callback(resumen, start_time, end_time,
                                total_time, average_record_time, mensaje_salida)
@@ -316,6 +327,7 @@ def automate_web_form(user, password, distrito, max_records, start_time, records
             mensaje_salida = f"Resultado: \n{mensaje}"
             update_ui_callback(resumen, start_time, end_time,
                                total_time, average_record_time, mensaje_salida)
+            time.sleep(espera)  # Esperar un tiempo antes de reintentar
 
     except Exception as e:
         print(f"Error general en la automatización: {e}")
@@ -330,7 +342,7 @@ def automate_web_form(user, password, distrito, max_records, start_time, records
             update_ui_callback(resumen, start_time, end_time,
                                total_time, average_record_time, mensaje_salida)
             time.sleep(espera)  # Esperar un tiempo antes de reintentar
-            return automate_web_form(user, password, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback)
+            return automate_web_form(user, password, distrito, max_records, start_time, records_processed, resumen, espera, hora_ini, hora_fin, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback)
 
     finally:
         if driver:
@@ -354,6 +366,6 @@ def automate_web_form(user, password, distrito, max_records, start_time, records
 # Función principal que se llamará desde la UI
 
 
-def main(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
-    automate_web_form(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path,
+def main(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, hora_ini, hora_fin, chrome_driver_path, chrome_binary_path, db_processor, update_ui_callback):
+    automate_web_form(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, hora_ini, hora_fin, chrome_driver_path,
                       chrome_binary_path, db_processor, update_ui_callback)

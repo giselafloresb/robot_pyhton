@@ -15,6 +15,8 @@ class MainWindow:
         master.title("Captura Masiva")
         master.configure(bg='white')
         self.db_processor = DatabaseProcessor()
+        self.user_var = ""
+        self.district_var = ""
 
         style = ttk.Style()
         style.theme_use('default')
@@ -55,8 +57,10 @@ class MainWindow:
             master, textvariable=self.max_records_var)
         self.entry_max_records.grid(
             row=3, column=1, padx=10, pady=5, sticky="ew")
+        # Valor predeterminado para hora de fin
+        self.entry_max_records.insert(0, "1")
 
-        # Campo para especificar el número máximo de registros a procesar
+        # Campo para especificar la espera en segundos entre registros
         ttk.Label(master, text="Tempo entre registros (segundos):").grid(
             row=4, column=1, padx=10, pady=5, sticky="e")
         self.espera_var = tk.IntVar()
@@ -64,22 +68,40 @@ class MainWindow:
             master, textvariable=self.espera_var)
         self.entry_espera.grid(
             row=5, column=1, padx=10, pady=5, sticky="ew")
+        # Valor predeterminado para hora de fin
+        self.entry_espera.insert(1, "1")
+
+        # Agregar etiqueta y campo de entrada para Hora de Inicio
+        ttk.Label(master, text="Hora de Inicio (HH:MM):").grid(
+            row=6, column=1, padx=10, pady=5, sticky="e")
+        self.entry_hora_ini = ttk.Entry(master)
+        self.entry_hora_ini.grid(row=7, column=1, padx=10, pady=5, sticky="ew")
+        # Valor predeterminado para hora de inicio
+        self.entry_hora_ini.insert(0, "08:00")
+
+        # Agregar etiqueta y campo de entrada para Hora de Fin
+        ttk.Label(master, text="Hora de Fin (HH:MM):").grid(
+            row=8, column=1, padx=10, pady=5, sticky="e")
+        self.entry_hora_fin = ttk.Entry(master)
+        self.entry_hora_fin.grid(row=9, column=1, padx=10, pady=5, sticky="ew")
+        # Valor predeterminado para hora de fin
+        self.entry_hora_fin.insert(0, "23:59")
 
         # Boton iniciar automatizacion
         self.automation_button = ttk.Button(
             master, text="Iniciar Automatización", state='disabled', command=self.start_automation)
         self.automation_button.grid(
-            row=6, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+            row=10, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
 
         # Agregar etiquetas para el resumen
         self.label_procesados = ttk.Label(master, text="", background='white')
         self.label_procesados.grid(
-            row=7, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
+            row=11, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
 
         self.label_automation_time = ttk.Label(
             master, text="", background='white')
         self.label_automation_time.grid(
-            row=8, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
+            row=12, column=0, padx=10, pady=5, sticky="ew", columnspan=2)
 
         master.grid_columnconfigure(0, weight=1)
         master.grid_columnconfigure(1, weight=3)
@@ -157,6 +179,24 @@ class MainWindow:
             'registros_sirena': 0,
             'registros_error': 0
         }
+        # Obtener y validar las horas de inicio y fin
+        try:
+            hora_ini = datetime.strptime(
+                self.entry_hora_ini.get(), "%H:%M").time()
+            hora_fin = datetime.strptime(
+                self.entry_hora_fin.get(), "%H:%M").time()
+        except ValueError:
+            self.automation_button.grid()
+            messagebox.showerror("Error de Formato de Hora",
+                                 "La hora debe estar en formato HH:MM.")
+            return
+
+        # Asegurarse de que la hora de inicio es menor que la hora de fin
+        if hora_ini >= hora_fin:
+            self.automation_button.grid()
+            messagebox.showerror(
+                "Error en Horas", "La hora de inicio debe ser menor que la hora de fin.")
+            return
 
         # Asegúrate de especificar las rutas correctas para tu chromedriver y chrome.exe
         directorio_actual = os.getcwd()
@@ -166,11 +206,11 @@ class MainWindow:
             directorio_actual, "env", "chrome", "chrome.exe")
 
         threading.Thread(target=self.run_automation, args=(
-            usuario, contrasena, max_records, start_time, records_processed, resumen, espera, distrito, chrome_driver_path, chrome_binary_path), daemon=True).start()
+            usuario, contrasena, max_records, start_time, records_processed, resumen, espera, hora_ini, hora_fin, distrito, chrome_driver_path, chrome_binary_path), daemon=True).start()
 
-    def run_automation(self, usuario, contrasena, max_records, start_time, records_processed, resumen, espera, distrito, chrome_driver_path, chrome_binary_path):
+    def run_automation(self, usuario, contrasena, max_records, start_time, records_processed, resumen, espera, hora_ini, hora_fin, distrito, chrome_driver_path, chrome_binary_path):
         try:
-            main(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, chrome_driver_path,
+            main(usuario, contrasena, distrito, max_records, start_time, records_processed, resumen, espera, hora_ini, hora_fin, chrome_driver_path,
                  chrome_binary_path, self.db_processor, self.update_ui_callback)
         except Exception as e:
             print(f"Error en la automatización: {e}")
