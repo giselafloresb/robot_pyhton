@@ -67,6 +67,19 @@ class DatabaseProcessor:
         self.cursor.execute(query, (str(end_time), str(status), record_id))
         self.conn.commit()
 
+    def reconnect(self):
+        try:
+            self.cursor.close()
+            self.conn.close()
+        except:
+            pass  # La conexión ya estaba cerrada o no se pudo cerrar
+        try:
+            self.conn = self.create_connection()
+            self.cursor = self.conn.cursor(dictionary=True)
+            print("Reconexión a la base de datos exitosa.")
+        except Exception as e:
+            print(f"Error al reconectar a la base de datos: {e}")
+
     def __del__(self):
         self.cursor.close()
         self.conn.close()

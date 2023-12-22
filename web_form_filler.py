@@ -339,6 +339,7 @@ def automate_web_form(user, password, distrito, max_records, start_time, records
         if records_processed < max_records:
             print("Reintentando la automatización...")
             mensaje_salida = "Reintentando la automatización..."
+            db_processor.reconnect()
             update_ui_callback(resumen, start_time, end_time,
                                total_time, average_record_time, mensaje_salida)
             time.sleep(espera)  # Esperar un tiempo antes de reintentar
